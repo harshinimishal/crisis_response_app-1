@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-<<<<<<< HEAD
 import 'auth_service.dart';
 import 'reset_password_screen.dart';
-=======
-import '../routes/app_routes.dart';
-import 'auth_service.dart';
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
@@ -113,16 +108,12 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
         ),
       );
 
-<<<<<<< HEAD
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => const ResetPasswordScreen(),
         ),
       );
-=======
-      Navigator.pushNamed(context, AppRoutes.resetPassword);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     }
   }
 

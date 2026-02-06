@@ -38,7 +38,8 @@ class AuthService {
           .set({
         'uid': userCredential.user!.uid,
         'email': email,
-        'fullName': fullName,
+        'name': fullName,
+        'fullName': fullName, // Keep for backward compatibility
         'phoneNumber': phoneNumber,
         'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),

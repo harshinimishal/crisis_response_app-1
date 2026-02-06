@@ -1,26 +1,28 @@
-<<<<<<< HEAD
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 // Services
 import '../models/user_models.dart';
 import '../services/cloudinary_service.dart';
 import '../services/settings_service.dart';
 import '../services/profile_features_service.dart';
+import 'safety_settings_screen.dart';
 
-class UserProfileScreen extends StatefulWidget {
-  const UserProfileScreen({Key? key}) : super(key: key);
+class EmergencyProfileScreen extends StatefulWidget {
+  final String? userId;
+  const EmergencyProfileScreen({Key? key, this.userId}) : super(key: key);
 
   @override
-  State<UserProfileScreen> createState() => _UserProfileScreenState();
+  State<EmergencyProfileScreen> createState() => _EmergencyProfileScreenState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> with SingleTickerProviderStateMixin {
+class _EmergencyProfileScreenState extends State<EmergencyProfileScreen> 
+    with TickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CloudinaryService _cloudinaryService = CloudinaryService();
@@ -29,12 +31,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
 
   UserModel? _user;
   bool _isLoading = true;
+  bool _isEditing = false;
   late TabController _tabController;
+  late AnimationController _animationController;
 
   // Edit Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _medicalController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  
+  // Profile Fields
+  String _gender = 'Not Specified';
+  DateTime? _dob;
+  int? _age;
+  
+  // Emergency Contacts
+  List<Map<String, dynamic>> _contactsList = [];
+  
+  // Legal Docs
+  List<String> _legalDocs = [];
 
   // Dummy Feature States
   String _satelliteStatus = 'Offline';
@@ -45,798 +60,931 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     _fetchUserData();
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _animationController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  String get _targetUid => widget.userId ?? _auth.currentUser?.uid ?? '';
+
   Future<void> _fetchUserData() async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) {
-      // Handle guest or redirect
+    if (_targetUid.isEmpty) {
       setState(() => _isLoading = false);
       return;
     }
 
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
+      setState(() => _isLoading = true);
+      
+      // 1. Fetch User Doc
+      final doc = await _firestore.collection('users').doc(_targetUid).get();
       if (doc.exists) {
-        _user = UserModel.fromMap(doc.data()!, uid);
+        _user = UserModel.fromMap(doc.data()!, _targetUid);
         _nameController.text = _user!.name;
         _phoneController.text = _user!.phone;
-        _medicalController.text = _user!.medicalInfo;
+        _emailController.text = _user!.email;
+        _gender = _user!.gender;
+        _dob = _user!.dob;
+        _age = _user!.age;
+        _legalDocs = List.from(_user!.legalDocuments);
       } else {
-        // Create default user struct if not exists
         _user = UserModel(
-            uid: uid,
-            name: '',
-            phone: '',
-            email: _auth.currentUser!.email ?? '',
-            medicalInfo: '',
-            emergencyContacts: [],
-            settings: {'themeMode': false, 'enableNotifications': true},
-            privacy: {'shareLocation': true, 'shareBluetooth': true, 'shareMedicalInfo': true, 'shareNotifications': true}
+          uid: _targetUid,
+          name: '',
+          phone: '',
+          email: _auth.currentUser?.email ?? '',
+          settings: {'themeMode': false, 'enableNotifications': true},
+          privacy: {
+            'shareLocation': true,
+            'shareBluetooth': true,
+            'shareNotifications': true,
+          },
         );
       }
+
+      // 2. Fetch Emergency Contacts Subcollection
+      final contactsSnapshot = await _firestore
+          .collection('users')
+          .doc(_targetUid)
+          .collection('emergency_contacts')
+          .orderBy('addedAt', descending: true)
+          .get();
+      
+      _contactsList = contactsSnapshot.docs.map((d) {
+        final data = d.data();
+        data['id'] = d.id;
+        return data;
+      }).toList();
+
+      // 3. Fetch Permissions Status
+      await _fetchPermissionsStatus();
+
     } catch (e) {
       print('Error fetching user: $e');
+      _showSnackBar('Error loading data: $e', isError: true);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _animationController.forward();
+      }
+    }
+  }
+
+  Future<void> _fetchPermissionsStatus() async {
+    try {
+      final permissions = await _settingsService.checkPermissions();
+      
+      final permissionsMap = <String, bool>{
+        'location': permissions['Location'] == 'Granted',
+        'bluetooth': permissions['Bluetooth'] == 'Granted',
+        'notification': permissions['Notifications'] == 'Granted',
+        'contacts': permissions['Start Contacts'] == 'Granted',
+        'microphone': permissions['Microphone'] == 'Granted',
+      };
+
+      await _firestore.collection('users').doc(_targetUid).update({
+        'permissionsGranted': permissionsMap,
+      });
+
+      if (mounted) {
+        setState(() {
+          _user = _user?.copyWith(permissionsGranted: permissionsMap);
+        });
+      }
+    } catch (e) {
+      print('Error fetching permissions: $e');
     }
   }
 
   Future<void> _saveProfile() async {
     if (_user == null) return;
     
+    // Validation
+    if (_nameController.text.trim().isEmpty) {
+      _showSnackBar('Name is required', isError: true);
+      return;
+    }
+    
+    if (_phoneController.text.trim().isEmpty) {
+      _showSnackBar('Phone is required', isError: true);
+      return;
+    }
+
     setState(() => _isLoading = true);
     
+    // Calculate Age if DOB is present
+    if (_dob != null) {
+      final now = DateTime.now();
+      _age = now.year - _dob!.year;
+      if (now.month < _dob!.month || 
+          (now.month == _dob!.month && now.day < _dob!.day)) {
+        _age = _age! - 1;
+      }
+    }
+
     final updatedUser = _user!.copyWith(
-      name: _nameController.text,
-      phone: _phoneController.text,
-      medicalInfo: _medicalController.text,
+      name: _nameController.text.trim(),
+      phone: _phoneController.text.trim(),
+      email: _emailController.text.trim(),
+      gender: _gender,
+      dob: _dob,
+      age: _age,
+      legalDocuments: _legalDocs,
     );
 
     try {
-      await _firestore.collection('users').doc(_user!.uid).set(updatedUser.toMap(), SetOptions(merge: true));
-      _user = updatedUser;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile Saved!')));
+      await _firestore.collection('users').doc(_targetUid).set(
+        updatedUser.toMap(),
+        SetOptions(merge: true),
+      );
+      
+      setState(() {
+        _user = updatedUser;
+        _isEditing = false;
+      });
+      
+      _showSnackBar('Profile saved successfully!');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      print('Error saving profile: $e');
+      _showSnackBar('Failed to save: $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _uploadImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      setState(() => _isLoading = true);
-      final url = await _cloudinaryService.uploadImage(File(pickedFile.path));
+  Future<void> _uploadImage({bool isLegalDoc = false}) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
       
-      if (url != null) {
-        // Update in Firestore immediately
-        await _firestore.collection('users').doc(_user!.uid).update({'profileImageUrl': url});
-        setState(() {
-          _user = _user!.copyWith(profileImageUrl: url);
-        });
+      if (pickedFile != null) {
+        setState(() => _isLoading = true);
+        
+        final url = await _cloudinaryService.uploadFile(File(pickedFile.path));
+        
+        if (url != null) {
+          if (isLegalDoc) {
+            await _firestore.collection('users').doc(_targetUid).update({
+              'legalDocuments': FieldValue.arrayUnion([url])
+            });
+            setState(() => _legalDocs.add(url));
+            _showSnackBar('Document uploaded successfully!');
+          } else {
+            await _firestore.collection('users').doc(_targetUid).update({
+              'profileImageUrl': url
+            });
+            setState(() {
+              _user = _user!.copyWith(profileImageUrl: url);
+            });
+            _showSnackBar('Profile image updated!');
+          }
+        } else {
+          _showSnackBar('Upload failed', isError: true);
+        }
       }
+    } catch (e) {
+      print('Error uploading image: $e');
+      _showSnackBar('Upload error: $e', isError: true);
+    } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _importContacts() async {
-    // Stub for native contact picker
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opening Native Contacts... (Stub)')));
+  Future<void> _deleteLegalDoc(String url) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      await _firestore.collection('users').doc(_targetUid).update({
+        'legalDocuments': FieldValue.arrayRemove([url])
+      });
+      
+      setState(() => _legalDocs.remove(url));
+      _showSnackBar('Document deleted');
+    } catch (e) {
+      _showSnackBar('Failed to delete: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // --- Emergency Contacts Logic ---
+
+  Future<void> _addEmergencyContact(String name, String phone, String relation) async {
+    if (name.trim().isEmpty || phone.trim().isEmpty) {
+      _showSnackBar('Name and phone are required', isError: true);
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    try {
+      final newContact = {
+        'name': name.trim(),
+        'phone': phone.trim(),
+        'relation': relation.trim().isEmpty ? 'Other' : relation.trim(),
+        'addedAt': FieldValue.serverTimestamp(),
+      };
+      
+      await _firestore
+          .collection('users')
+          .doc(_targetUid)
+          .collection('emergency_contacts')
+          .add(newContact);
+      
+      await _fetchUserData();
+      _showSnackBar('Contact added successfully!');
+      
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      print('Error adding contact: $e');
+      _showSnackBar('Failed to add contact: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateEmergencyContact(
+    String contactId,
+    String name,
+    String phone,
+    String relation,
+  ) async {
+    if (name.trim().isEmpty || phone.trim().isEmpty) {
+      _showSnackBar('Name and phone are required', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_targetUid)
+          .collection('emergency_contacts')
+          .doc(contactId)
+          .update({
+        'name': name.trim(),
+        'phone': phone.trim(),
+        'relation': relation.trim().isEmpty ? 'Other' : relation.trim(),
+      });
+      
+      await _fetchUserData();
+      _showSnackBar('Contact updated!');
+      
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      _showSnackBar('Failed to update: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteEmergencyContact(String contactId) async {
+    final confirmed = await _showConfirmDialog(
+      'Delete Contact',
+      'Are you sure you want to delete this emergency contact?',
+    );
+    
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _firestore
+          .collection('users')
+          .doc(_targetUid)
+          .collection('emergency_contacts')
+          .doc(contactId)
+          .delete();
+          
+      setState(() {
+        _contactsList.removeWhere((c) => c['id'] == contactId);
+      });
+      
+      _showSnackBar('Contact deleted');
+    } catch (e) {
+      _showSnackBar('Failed to delete: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showAddContactDialog() {
+    final nController = TextEditingController();
+    final pController = TextEditingController();
+    final rController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Add Emergency Contact',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDialogTextField('Name *', nController, Icons.person),
+              const SizedBox(height: 12),
+              _buildDialogTextField('Phone *', pController, Icons.phone),
+              const SizedBox(height: 12),
+              _buildDialogTextField('Relation', rController, Icons.people),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => _addEmergencyContact(
+              nController.text,
+              pController.text,
+              rController.text,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditContactDialog(Map<String, dynamic> contact) {
+    final nController = TextEditingController(text: contact['name']);
+    final pController = TextEditingController(text: contact['phone']);
+    final rController = TextEditingController(text: contact['relation'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Edit Emergency Contact',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDialogTextField('Name *', nController, Icons.person),
+              const SizedBox(height: 12),
+              _buildDialogTextField('Phone *', pController, Icons.phone),
+              const SizedBox(height: 12),
+              _buildDialogTextField('Relation', rController, Icons.people),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => _updateEmergencyContact(
+              contact['id'],
+              nController.text,
+              pController.text,
+              rController.text,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Update', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importFromContacts() async {
+    _showSnackBar('Contact import feature coming soon!');
+    // TODO: Implement flutter_contacts integration
   }
 
   // --- UI BUILDERS ---
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0A0A0A),
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFFF5252))),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
-      appBar: AppBar(
-        title: const Text('User Profile & Settings', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: const Color(0xFFFF5252),
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.grey,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'PROFILE'),
-            Tab(text: 'MEDICAL ID'),
-            Tab(text: 'PRIVACY'),
-            Tab(text: 'ADVANCED'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
+      body: _isLoading && _user == null
+          ? _buildLoadingState()
+          : CustomScrollView(
+              slivers: [
+                _buildAppBar(),
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(),
+                      _buildTabBar(),
+                    ],
+                  ),
+                ),
+                SliverFillRemaining(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildProfileTab(),
+                      _buildContactsTab(),
+                      _buildPrivacyTab(),
+                      _buildAdvancedTab(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+      floatingActionButton: _isLoading
+          ? null
+          : _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildProfileTab(),
-          _buildMedicalIdTab(),
-          _buildPrivacyTab(),
-          _buildAdvancedTab(),
-=======
-import 'package:flutter/material.dart';
-
-class EmergencyProfileScreen extends StatefulWidget {
-  const EmergencyProfileScreen({Key? key}) : super(key: key);
-
-  @override
-  State<EmergencyProfileScreen> createState() => _EmergencyProfileScreenState();
-}
-
-class _EmergencyProfileScreenState extends State<EmergencyProfileScreen> {
-  bool showOnLockScreen = true;
-  bool respondersOnly = true;
-  bool locationSharing = false;
-
-  final List<Map<String, dynamic>> emergencyContacts = [
-    {
-      'name': 'Jane Doe',
-      'role': 'Spouse',
-      'type': 'Primary',
-      'icon': Icons.person,
-    },
-    {
-      'name': 'Dr. Michael Smith',
-      'role': 'Primary Physician',
-      'type': '',
-      'icon': Icons.medical_services,
-    },
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D2D2D),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0D2D2D),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Emergency Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const CircularProgressIndicator(
+              color: Color(0xFFFF5252),
+              strokeWidth: 3,
+            ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: () {},
+          const SizedBox(height: 20),
+          const Text(
+            'Loading Profile...',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
+    );
+  }
 
-            // Profile Avatar and Info
-            _buildProfileHeader(),
-            const SizedBox(height: 32),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Medical ID Section
-                  _buildMedicalIDSection(),
-                  const SizedBox(height: 32),
-
-                  // Emergency Contacts Section
-                  _buildEmergencyContactsSection(),
-                  const SizedBox(height: 32),
-
-                  // Privacy Settings Section
-                  _buildPrivacySettingsSection(),
-                  const SizedBox(height: 24),
-
-                  // Export Button
-                  _buildExportButton(),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-          ],
-        ),
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      expandedHeight: 0,
+      floating: true,
+      pinned: true,
+      backgroundColor: const Color(0xFF0A0A0A),
+      elevation: 0,
+      title: const Text(
+        'Emergency Profile',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
       ),
+      actions: [
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.settings, color: Color(0xFFFF5252)),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SafetySettingsScreen(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
   Widget _buildProfileHeader() {
-    return Column(
-      children: [
-        Stack(
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF00E5CC), width: 3),
-              ),
-              child: ClipOval(
-                child: Container(
-                  color: const Color(0xFF5A7F7F),
-                  child: const Icon(
-                    Icons.person,
-                    size: 60,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00E5CC),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'VERIFIED',
-                  style: TextStyle(
-                    color: Color(0xFF0D2D2D),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'John Doe',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          '34 years old • Male',
-          style: TextStyle(
-            color: Colors.white54,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF143838),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.circle, color: Color(0xFF00E5CC), size: 8),
-              SizedBox(width: 8),
-              Text(
-                'Profile Active',
-                style: TextStyle(
-                  color: Color(0xFF00E5CC),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMedicalIDSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF143838),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1F4D4D), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(Icons.local_hospital, color: Color(0xFF00E5CC), size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Medical ID',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'Edit',
-                  style: TextStyle(
-                    color: Color(0xFF00E5CC),
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1F4D4D),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: const [
-                    Text(
-                      'BLOOD',
-                      style: TextStyle(
-                        color: Color(0xFF00E5CC),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'O+',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'ALLERGIES',
-                      style: TextStyle(
-                        color: Color(0xFF00E5CC),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Penicillin, Peanuts',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'MEDICAL CONDITIONS',
-                      style: TextStyle(
-                        color: Color(0xFF00E5CC),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'None Reported',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: const [
-              Icon(Icons.info_outline, color: Colors.white38, size: 16),
-              SizedBox(width: 8),
-              Text(
-                'Last updated on Oct 24, 2023',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-        ],
-      ),
-    );
-  }
-
-<<<<<<< HEAD
-  Widget _buildProfileTab() {
-    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           GestureDetector(
-            onTap: _uploadImage,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.grey.shade900,
-                  backgroundImage: _user?.profileImageUrl != null
-                      ? NetworkImage(_user!.profileImageUrl!)
-                      : null,
-                  child: _user?.profileImageUrl == null
-                      ? const Icon(Icons.person, size: 60, color: Colors.grey)
-                      : null,
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(color: Color(0xFFFF5252), shape: BoxShape.circle),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-=======
-  Widget _buildEmergencyContactsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: const [
-                Icon(Icons.contacts, color: Color(0xFF00E5CC), size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'Emergency Contacts',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+            onTap: () => _uploadImage(isLegalDoc: false),
+            child: Hero(
+              tag: 'profile_image',
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF5252).withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 60,
+                      backgroundColor: const Color(0xFF1A1A1A),
+                      backgroundImage: _user?.profileImageUrl != null
+                          ? NetworkImage(_user!.profileImageUrl!)
+                          : null,
+                      child: _user?.profileImageUrl == null
+                          ? const Icon(Icons.person, size: 60, color: Colors.grey)
+                          : null,
+                    ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF5252), Color(0xFFFF8A80)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF5252).withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'Manage',
-                style: TextStyle(
-                  color: Color(0xFF00E5CC),
-                  fontSize: 14,
-                ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _user?.name ?? 'No Name',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _user?.email ?? '',
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          if (_age != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFFF5252).withOpacity(0.3)),
+              ),
+              child: Text(
+                '$_age years • $_gender',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        ...emergencyContacts.map((contact) => _buildContactCard(contact)),
-      ],
-    );
-  }
-
-  Widget _buildContactCard(Map<String, dynamic> contact) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF143838),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1F4D4D), width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1F4D4D),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              contact['icon'],
-              color: const Color(0xFF00E5CC),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  contact['name'],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${contact['role']}${contact['type'].isNotEmpty ? ' • ${contact['type']}' : ''}',
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                  ),
-                ),
-              ],
-            ),
-          ),
-<<<<<<< HEAD
-          const SizedBox(height: 30),
-          
-          _buildTextField('Full Name', _nameController, Icons.person),
-          const SizedBox(height: 16),
-          _buildTextField('Phone Number', _phoneController, Icons.phone),
-          const SizedBox(height: 16),
-          _buildTextField('Medical Conditions', _medicalController, Icons.medical_services, maxLines: 3),
-          
-          const SizedBox(height: 30),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saveProfile,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5252),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('SAVE PROFILE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ),
-          ),
-          const SizedBox(height: 30),
-          
-          const Align(alignment: Alignment.centerLeft, child: Text("Emergency Contacts", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-          const SizedBox(height: 10),
-          ListTile(
-            onTap: _importContacts,
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.blue.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.contacts, color: Colors.blue),
-            ),
-            title: const Text('Import from Phone Contacts', style: TextStyle(color: Colors.white)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ),
-          if (_user != null)
-            ..._user!.emergencyContacts.map((c) => ListTile(
-              leading: const CircleAvatar(backgroundColor: Color(0xFF2A2A2A), child: Icon(Icons.person, color: Colors.white)),
-              title: Text(c['name'] ?? 'Unknown', style: const TextStyle(color: Colors.white)),
-              subtitle: Text(c['phone'] ?? '', style: const TextStyle(color: Colors.grey)),
-            )),
-=======
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: Color(0xFF00E5CC),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.phone,
-              color: Color(0xFF0D2D2D),
-              size: 20,
-            ),
-          ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ],
       ),
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildMedicalIdTab() {
-    final qrData = "ID:${_user?.uid ?? 'N/A'}\nMED:${_user?.medicalInfo ?? 'None'}";
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF5252), Color(0xFFFF8A80)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.grey,
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        isScrollable: true,
+        tabs: const [
+          Tab(text: 'PROFILE'),
+          Tab(text: 'CONTACTS'),
+          Tab(text: 'PRIVACY'),
+          Tab(text: 'ADVANCED'),
+        ],
+      ),
+    );
+  }
 
-    return Padding(
+  Widget _buildProfileTab() {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('MEDICAL ID', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 2)),
-                    Icon(Icons.medical_information, color: Color(0xFFFF5252), size: 30),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 200.0,
-                  backgroundColor: Colors.white,
-                ),
-                const SizedBox(height: 10),
-                Text('Scan by First Responders', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-              ],
-            ),
-          ),
-          const Spacer(),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.download, color: Color(0xFFFF5252)),
-            label: const Text('EXPORT DATA (JSON)', style: TextStyle(color: Color(0xFFFF5252))),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFFFF5252)),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            ),
+          _buildSectionCard(
+            'Personal Information',
+            Icons.person_outline,
+            [
+              _buildTextField('Full Name', _nameController, Icons.person, enabled: _isEditing),
+              const SizedBox(height: 16),
+              _buildTextField('Phone (Primary)', _phoneController, Icons.phone, enabled: _isEditing),
+              const SizedBox(height: 16),
+              _buildTextField('Email', _emailController, Icons.email, enabled: false),
+              const SizedBox(height: 16),
+              _buildGenderDropdown(),
+              const SizedBox(height: 16),
+              _buildDOBPicker(),
+            ],
           ),
           const SizedBox(height: 20),
-=======
-  Widget _buildPrivacySettingsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: const [
-            Icon(Icons.remove_red_eye, color: Color(0xFF00E5CC), size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Privacy Settings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildPrivacyToggle(
-          title: 'Show on Lock Screen',
-          subtitle: 'Allow access without unlocking',
-          value: showOnLockScreen,
-          onChanged: (value) {
-            setState(() {
-              showOnLockScreen = value;
-            });
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildPrivacyToggle(
-          title: 'Responders Only',
-          subtitle: 'Only verified first responders can see info',
-          value: respondersOnly,
-          onChanged: (value) {
-            setState(() {
-              respondersOnly = value;
-            });
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildPrivacyToggle(
-          title: 'Location Sharing',
-          subtitle: 'Share current coordinates during SOS',
-          value: locationSharing,
-          onChanged: (value) {
-            setState(() {
-              locationSharing = value;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPrivacyToggle({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF143838),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1F4D4D), width: 1),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
+          _buildSectionCard(
+            'Legal Documents',
+            Icons.description_outlined,
+            [
+              _buildLegalDocsGrid(),
+            ],
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: const Color(0xFF00E5CC),
-            activeTrackColor: const Color(0xFF1F4D4D),
-          ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ],
       ),
     );
   }
 
-<<<<<<< HEAD
+  Widget _buildContactsTab() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1A1A1A), Color(0xFF0A0A0A)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _importFromContacts,
+                  icon: const Icon(Icons.perm_contact_calendar, size: 20),
+                  label: const Text('Import'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2A2A2A),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF5252), Color(0xFFFF8A80)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF5252).withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _showAddContactDialog,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      child: const Icon(Icons.add, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _contactsList.isEmpty
+              ? _buildEmptyState(
+                  'No Emergency Contacts',
+                  'Add contacts who should be notified in emergencies',
+                  Icons.contacts_outlined,
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: _contactsList.length,
+                  itemBuilder: (ctx, index) => _buildContactCard(_contactsList[index], index),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContactCard(Map<String, dynamic> contact, int index) {
+    return TweenAnimationBuilder(
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      tween: Tween<double>(begin: 0, end: 1),
+      builder: (context, double value, child) {
+        return Transform.translate(
+          offset: Offset(0, 50 * (1 - value)),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFFF5252).withOpacity(0.2),
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _showEditContactDialog(contact),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFFFF5252).withOpacity(0.3),
+                          const Color(0xFFFF8A80).withOpacity(0.3),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      contact['name'].toString().substring(0, 1).toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          contact['name'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          contact['phone'],
+                          style: const TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2A2A2A),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            contact['relation'] ?? 'Other',
+                            style: const TextStyle(
+                              color: Color(0xFFFF8A80),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _deleteEmergencyContact(contact['id']),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPrivacyTab() {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildSectionHeader('Permisisons Health'),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(16)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildPermissionIcon(Icons.location_on, 'Location', true),
-              _buildPermissionIcon(Icons.bluetooth, 'Bluetooth', true),
-              _buildPermissionIcon(Icons.notifications, 'Notif', true),
-              _buildPermissionIcon(Icons.contacts, 'Contacts', false),
-            ],
-          ),
+        _buildSectionCard(
+          'Permissions Status',
+          Icons.security_outlined,
+          [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A0A0A),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildPermissionIcon(
+                    Icons.location_on,
+                    'Location',
+                    _user?.permissionsGranted['location'] ?? false,
+                  ),
+                  _buildPermissionIcon(
+                    Icons.bluetooth,
+                    'Bluetooth',
+                    _user?.permissionsGranted['bluetooth'] ?? false,
+                  ),
+                  _buildPermissionIcon(
+                    Icons.notifications,
+                    'Notifications',
+                    _user?.permissionsGranted['notification'] ?? false,
+                  ),
+                  _buildPermissionIcon(
+                    Icons.contacts,
+                    'Contacts',
+                    _user?.permissionsGranted['contacts'] ?? false,
+                  ),
+                  _buildPermissionIcon(
+                    Icons.mic,
+                    'Microphone',
+                    _user?.permissionsGranted['microphone'] ?? false,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 30),
-        _buildSectionHeader('Privacy Controls'),
-        _buildPrivacyToggle('Share Location', 'shareLocation'),
-        _buildPrivacyToggle('Bluetooth Sharing', 'shareBluetooth'),
-        _buildPrivacyToggle('Share Medical Info', 'shareMedicalInfo'),
-        _buildPrivacyToggle('Allow Notifications', 'shareNotifications'),
+        const SizedBox(height: 20),
+        _buildSectionCard(
+          'Privacy Controls',
+          Icons.privacy_tip_outlined,
+          _user != null
+              ? [
+                  _buildPrivacyToggle('Share Location', 'shareLocation'),
+                  const Divider(color: Color(0xFF2A2A2A), height: 1),
+                  _buildPrivacyToggle('Share Bluetooth', 'shareBluetooth'),
+                  const Divider(color: Color(0xFF2A2A2A), height: 1),
+                  _buildPrivacyToggle(
+                    'Share Notifications',
+                    'shareNotifications',
+                  ),
+                ]
+              : [],
+        ),
       ],
     );
   }
@@ -845,7 +993,7 @@ class _EmergencyProfileScreenState extends State<EmergencyProfileScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        _buildSectionHeader('Futuristic Capabilities (Dummy)'),
+        _buildSectionHeader('Futuristic Capabilities'),
         const SizedBox(height: 10),
         _buildFeatureCard(
           'Satellite Uplink',
@@ -867,64 +1015,420 @@ class _EmergencyProfileScreenState extends State<EmergencyProfileScreen> {
           Colors.orange,
           onTap: () async {
             setState(() => _droneStatus = 'Checking airspace...');
-            final res = await _dummyService.checkDroneAvailability(0,0);
-            if (mounted) setState(() => _droneStatus = res['message']);
+            final res = await _dummyService.checkDroneAvailability(0, 0);
+            if (mounted) {
+              setState(() => _droneStatus = res['message']);
+            }
           },
         ),
         const SizedBox(height: 16),
         _buildFeatureCard(
-          'AI Crisis Analysis',
+          'AI Medical Triage',
           _aiAnalysis,
           Icons.psychology,
           Colors.purple,
           onTap: () async {
-            setState(() => _aiAnalysis = 'Analyzing biometric patterns...');
-            final res = await _dummyService.runAITriage(_medicalController.text);
-            if (mounted) setState(() => _aiAnalysis = res);
+            setState(() => _aiAnalysis = 'Analyzing...');
+            final analysis = await _dummyService.runAITriage(
+              'Age: $_age, Gender: $_gender',
+            );
+            if (mounted) setState(() => _aiAnalysis = analysis);
           },
         ),
       ],
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon, {int maxLines = 1}) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.grey),
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: const Color(0xFF1A1A1A),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+  Widget _buildSectionCard(String title, IconData icon, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFF5252).withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFFF5252).withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: const Color(0xFFFF5252)),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(children: children),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    int maxLines = 1,
+    bool enabled = true,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      enabled: enabled,
+      style: TextStyle(
+        color: enabled ? Colors.white : Colors.grey,
+      ),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: const Color(0xFFFF5252)),
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: enabled ? const Color(0xFF0A0A0A) : const Color(0xFF1A1A1A),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: const Color(0xFFFF5252).withOpacity(0.3),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFFF5252), width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon,
+  ) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: const Color(0xFFFF5252)),
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: const Color(0xFF0A0A0A),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFFF5252)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenderDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: _isEditing ? const Color(0xFF0A0A0A) : const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isEditing
+              ? const Color(0xFFFF5252).withOpacity(0.3)
+              : Colors.transparent,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _gender,
+          dropdownColor: const Color(0xFF1A1A1A),
+          style: TextStyle(
+            color: _isEditing ? Colors.white : Colors.grey,
+          ),
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: _isEditing ? const Color(0xFFFF5252) : Colors.grey,
+          ),
+          isExpanded: true,
+          items: ['Not Specified', 'Male', 'Female', 'Other']
+              .map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Row(
+                children: [
+                  const Icon(Icons.person, size: 20, color: Color(0xFFFF5252)),
+                  const SizedBox(width: 12),
+                  Text(value),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: _isEditing
+              ? (newValue) => setState(() => _gender = newValue!)
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDOBPicker() {
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: _isEditing
+                ? () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _dob ?? DateTime(2000),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                      builder: (context, child) {
+                        return Theme(
+                          data: ThemeData.dark().copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: Color(0xFFFF5252),
+                              onPrimary: Colors.white,
+                              surface: Color(0xFF1A1A1A),
+                              onSurface: Colors.white,
+                            ),
+                            dialogBackgroundColor: const Color(0xFF0A0A0A),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) setState(() => _dob = picked);
+                  }
+                : null,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _isEditing ? const Color(0xFF0A0A0A) : const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isEditing
+                      ? const Color(0xFFFF5252).withOpacity(0.3)
+                      : Colors.transparent,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    color: _isEditing ? const Color(0xFFFF5252) : Colors.grey,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _dob == null
+                        ? 'Select Date of Birth'
+                        : DateFormat('MMM dd, yyyy').format(_dob!),
+                    style: TextStyle(
+                      color: _isEditing ? Colors.white : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFFFF5252).withOpacity(0.3),
+                const Color(0xFFFF8A80).withOpacity(0.3),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Age: ${_age ?? "?"}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegalDocsGrid() {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        ..._legalDocs.asMap().entries.map((entry) {
+          final index = entry.key;
+          final url = entry.value;
+          return TweenAnimationBuilder(
+            duration: Duration(milliseconds: 300 + (index * 100)),
+            tween: Tween<double>(begin: 0, end: 1),
+            builder: (context, double value, child) {
+              return Transform.scale(
+                scale: value,
+                child: child,
+              );
+            },
+            child: GestureDetector(
+              onTap: () => launchUrl(Uri.parse(url)),
+              onLongPress: () => _deleteLegalDoc(url),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade900,
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(
+                        image: NetworkImage(url),
+                        fit: BoxFit.cover,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF5252).withOpacity(0.3),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: () => _deleteLegalDoc(url),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        if (_isEditing)
+          GestureDetector(
+            onTap: () => _uploadImage(isLegalDoc: true),
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A0A0A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFFF5252).withOpacity(0.5),
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: const Icon(
+                Icons.add_photo_alternate,
+                color: Color(0xFFFF5252),
+                size: 40,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildPrivacyToggle(String title, String key) {
-    if (_user == null) return const SizedBox();
-    bool value = _user!.privacy[key] ?? false;
-    return SwitchListTile(
-      value: value,
-      activeColor: const Color(0xFFFF5252),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      onChanged: (v) {
-        setState(() {
-          _user!.privacy[key] = v;
-        });
-        _settingsService.updatePrivacySetting(key, v);
-      },
+    final value = _user!.privacy[key] ?? false;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          Switch(
+            value: value,
+            activeColor: const Color(0xFFFF5252),
+            onChanged: (v) {
+              setState(() {
+                _user!.privacy[key] = v;
+              });
+              _settingsService.updatePrivacySetting(key, v);
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPermissionIcon(IconData icon, String label, bool granted) {
     return Column(
       children: [
-        Icon(icon, color: granted ? Colors.green : Colors.red),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: granted ? Colors.green : Colors.red, fontSize: 10)),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: granted
+                ? const Color(0xFF4CAF50).withOpacity(0.2)
+                : const Color(0xFFFF5252).withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: granted ? const Color(0xFF4CAF50) : const Color(0xFFFF5252),
+            size: 24,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: granted ? const Color(0xFF4CAF50) : const Color(0xFFFF5252),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -932,68 +1436,195 @@ class _EmergencyProfileScreenState extends State<EmergencyProfileScreen> {
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title.toUpperCase(), style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-    );
-  }
-
-  Widget _buildFeatureCard(String title, String status, IconData icon, Color color, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: color.withOpacity(0.2), shape: BoxShape.circle),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text(status, style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-                ],
-              ),
-            ),
-            Icon(Icons.play_circle_fill, color: color.withOpacity(0.5)),
-          ],
-=======
-  Widget _buildExportButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {},
-        icon: const Icon(Icons.file_download, size: 20),
-        label: const Text(
-          'Export for Emergency',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF00E5CC),
-          foregroundColor: const Color(0xFF0D2D2D),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
         ),
       ),
     );
   }
-<<<<<<< HEAD
+
+  Widget _buildFeatureCard(
+    String title,
+    String status,
+    IconData icon,
+    Color color, {
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.2),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 32),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    status,
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.play_circle_fill, color: color.withOpacity(0.5), size: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFFFF5252).withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFFFF5252),
+              size: 60,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _buildFloatingActionButton() {
+    return _tabController.index == 0
+        ? FloatingActionButton.extended(
+            onPressed: () {
+              if (_isEditing) {
+                _saveProfile();
+              } else {
+                setState(() => _isEditing = true);
+              }
+            },
+            backgroundColor: const Color(0xFFFF5252),
+            icon: Icon(_isEditing ? Icons.save : Icons.edit),
+            label: Text(
+              _isEditing ? 'SAVE' : 'EDIT',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          )
+        : null;
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF4CAF50),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Future<bool?> _showConfirmDialog(String title, String message) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
 }
-=======
-}
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b

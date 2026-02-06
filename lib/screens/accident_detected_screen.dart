@@ -1,26 +1,61 @@
-import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:sensors_plus/sensors_plus.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vibration/vibration.dart';
-import 'package:battery_plus/battery_plus.dart';
-import 'dart:convert';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-import '../services/emergency_service.dart';
-import '../services/dtn_service.dart';
-import 'emergency_beacon_screen.dart';
+// ============================================================================
+// BLUETOOTH DEVICE MODEL
+// ============================================================================
+class BluetoothDeviceInfo {
+  final String id;
+  final String name;
+  final int rssi;
+  final DateTime lastSeen;
+  final String deviceType;
 
+  BluetoothDeviceInfo({
+    required this.id,
+    required this.name,
+    required this.rssi,
+    required this.lastSeen,
+    required this.deviceType,
+  });
+
+  int get signalStrength {
+    if (rssi >= -50) return 5;
+    if (rssi >= -60) return 4;
+    if (rssi >= -70) return 3;
+    if (rssi >= -80) return 2;
+    return 1;
+  }
+
+  String get distance {
+    if (rssi >= -50) return '<1m';
+    if (rssi >= -60) return '1-3m';
+    if (rssi >= -70) return '3-5m';
+    if (rssi >= -80) return '5-10m';
+    return '>10m';
+  }
+
+  IconData get deviceIcon {
+    if (deviceType.contains('phone')) return Icons.phone_android;
+    if (deviceType.contains('computer')) return Icons.computer;
+    if (deviceType.contains('headphones')) return Icons.headphones;
+    if (deviceType.contains('watch')) return Icons.watch;
+    return Icons.devices;
+  }
+}
+
+// ============================================================================
+// ACCIDENT DETECTION SCREEN
+// ============================================================================
 class AccidentDetectionScreen extends StatefulWidget {
   final String userId;
-  final double impactForce; // G-force detected
-  final String detectionType; // crash, fall, sudden_stop
+  final double impactForce;
+  final String detectionType;
   final List<Map<String, String>> emergencyContacts;
 
   const AccidentDetectionScreen({
@@ -40,265 +75,267 @@ class _AccidentDetectionScreenState extends State<AccidentDetectionScreen>
   // Animation controllers
   late AnimationController _countdownController;
   late AnimationController _pulseController;
-  late AnimationController _impactWaveController;
-  late AnimationController _alertController;
-
-  // Services
-  final EmergencyService _emergencyService = EmergencyService();
-  final DTNService _dtnService = DTNService();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final Battery _battery = Battery();
+  late AnimationController _glowController;
+  late AnimationController _shakeController;
+  late AnimationController _rippleController;
 
   // Timers
   Timer? _countdownTimer;
-  Timer? _sensorMonitorTimer;
+  Timer? _simulationTimer;
   int countdown = 10;
 
-  // Network & Status
-  bool _hasInternet = false;
+  // Status flags
+  bool _hasInternet = true;
   bool _isLocationAcquired = false;
   bool _emergencyTriggered = false;
-  bool _dtnModeActive = false;
-  String _sessionId = '';
-
-  // Location
-  Position? _currentLocation;
+  bool _bluetoothEnabled = false;
+  bool _isBluetoothScanning = false;
+  
+  // Data
   String _locationText = 'Acquiring GPS...';
   double _locationAccuracy = 0;
+  double _currentAcceleration = 8.5;
+  String _motionPattern = 'Analyzing motion...';
+  int _batteryLevel = 87;
+  String _sessionId = '';
 
-  // Sensor data
-  double _currentAcceleration = 0;
-  String _motionPattern = 'analyzing...';
-  
-  // Emergency packet
-  Map<String, dynamic>? _emergencyPacket;
-
-  // Stream subscriptions
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-  StreamSubscription<Position>? _locationSubscription;
-  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
-=======
-import 'dart:async';
-import 'dart:math' as math;
-
-class AccidentDetectedScreen extends StatefulWidget {
-  const AccidentDetectedScreen({Key? key}) : super(key: key);
-
-  @override
-  State<AccidentDetectedScreen> createState() => _AccidentDetectedScreenState();
-}
-
-class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _progressController;
-  late AnimationController _pulseController;
-  int countdown = 10;
-  late Timer _countdownTimer;
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+  // Bluetooth
+  final Map<String, BluetoothDeviceInfo> _nearbyDevices = {};
+  StreamSubscription<List<ScanResult>>? _scanSubscription;
+  StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
-    
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
     _initializeAnimations();
-    _checkConnectivity();
-    _acquireLocation();
-    _monitorSensors();
     _startCountdown();
-    _prepareEmergencyPacket();
+    _startSimulation();
+    _generateSessionId();
+    _simulateLocationAcquisition();
+    _initializeBluetooth();
     
-    // Critical vibration pattern
-    Vibration.vibrate(
-      pattern: [0, 1000, 300, 1000, 300, 1000],
-      intensities: [0, 255, 0, 255, 0, 255],
-    );
+    // Haptic feedback
+    HapticFeedback.heavyImpact();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      HapticFeedback.mediumImpact();
+    });
   }
 
   void _initializeAnimations() {
     _countdownController = AnimationController(
-=======
-    _progressController = AnimationController(
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       vsync: this,
       duration: const Duration(seconds: 10),
     )..forward();
 
     _pulseController = AnimationController(
       vsync: this,
-<<<<<<< HEAD
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-    _impactWaveController = AnimationController(
+    _glowController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat();
-
-    _alertController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+
+    _rippleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
   }
 
-  Future<void> _checkConnectivity() async {
-    final connectivity = Connectivity();
-    final results = await connectivity.checkConnectivity();
-    
-    setState(() {
-      _hasInternet = results.contains(ConnectivityResult.mobile) ||
-          results.contains(ConnectivityResult.wifi) ||
-          results.contains(ConnectivityResult.ethernet);
-    });
-
-    _connectivitySubscription = connectivity.onConnectivityChanged.listen((results) {
-      final wasOffline = !_hasInternet;
-      
-      setState(() {
-        _hasInternet = results.contains(ConnectivityResult.mobile) ||
-            results.contains(ConnectivityResult.wifi) ||
-            results.contains(ConnectivityResult.ethernet);
-      });
-
-      // If we just came online and have pending emergency
-      if (wasOffline && _hasInternet && _dtnModeActive) {
-        _syncDTNToOnline();
-      }
-    });
+  void _generateSessionId() {
+    _sessionId = 'EMG_${DateTime.now().millisecondsSinceEpoch}_${widget.userId.substring(0, 8)}';
   }
 
-  Future<void> _acquireLocation() async {
+  // ============================================================================
+  // BLUETOOTH IMPLEMENTATION
+  // ============================================================================
+  
+  Future<void> _initializeBluetooth() async {
     try {
-      // Try to get last known position first (faster)
-      Position? position = await Geolocator.getLastKnownPosition();
-      
-      if (position != null) {
-        _updateLocation(position);
+      // Check if Bluetooth is supported
+      if (await FlutterBluePlus.isSupported == false) {
+        debugPrint("Bluetooth not supported by this device");
+        return;
       }
 
-      // Start high-accuracy tracking
-      const locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5,
-      );
-
-      _locationSubscription = Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen((Position position) {
-        _updateLocation(position);
-      }, onError: (error) {
-        debugPrint('❌ Location error: $error');
-        setState(() {
-          _locationText = 'GPS unavailable';
-        });
-      });
-    } catch (e) {
-      debugPrint('❌ Location acquisition failed: $e');
-      setState(() {
-        _locationText = 'GPS unavailable';
-      });
-    }
-  }
-
-  void _updateLocation(Position position) {
-    setState(() {
-      _currentLocation = position;
-      _locationAccuracy = position.accuracy;
-      _isLocationAcquired = true;
-      _locationText = 'GPS: ${position.latitude.toStringAsFixed(4)}, '
-          '${position.longitude.toStringAsFixed(4)}';
-    });
-
-    // Update emergency packet with location
-    if (_emergencyPacket != null) {
-      _emergencyPacket!['location'] = {
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'accuracy': position.accuracy,
-        'timestamp': position.timestamp?.toIso8601String(),
-      };
-    }
-  }
-
-  void _monitorSensors() {
-    // Monitor accelerometer for continued motion patterns
-    _accelerometerSubscription = accelerometerEvents.listen((event) {
-      final acceleration = math.sqrt(
-        event.x * event.x + event.y * event.y + event.z * event.z,
-      );
-
-      setState(() {
-        _currentAcceleration = acceleration;
-        
-        // Analyze motion pattern
-        if (acceleration < 2) {
-          _motionPattern = 'No movement detected';
-        } else if (acceleration < 8) {
-          _motionPattern = 'Minor motion';
-        } else if (acceleration < 15) {
-          _motionPattern = 'Significant motion';
-        } else {
-          _motionPattern = 'Severe impact detected';
+      // Listen to Bluetooth adapter state
+      _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
+        if (mounted) {
+          setState(() {
+            _bluetoothEnabled = state == BluetoothAdapterState.on;
+          });
+          
+          if (state == BluetoothAdapterState.on && !_isBluetoothScanning) {
+            _startBluetoothScan();
+          } else if (state != BluetoothAdapterState.on) {
+            _stopBluetoothScan();
+          }
         }
       });
-    });
 
-    // Periodic sensor health check
-    _sensorMonitorTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (mounted) {
-        // Check if device is stationary (possible unconscious user)
-        if (_currentAcceleration < 1.5 && countdown <= 5) {
-          debugPrint('⚠️ Device stationary - user may be unconscious');
+      // Request permissions
+      await _requestBluetoothPermissions();
+      
+      // Check initial state
+      final adapterState = await FlutterBluePlus.adapterState.first;
+      if (adapterState == BluetoothAdapterState.on) {
+        _startBluetoothScan();
+      } else {
+        // Try to turn on Bluetooth (Android only)
+        if (Theme.of(context).platform == TargetPlatform.android) {
+          await FlutterBluePlus.turnOn();
         }
       }
-    });
-  }
-
-  Future<void> _prepareEmergencyPacket() async {
-    final batteryLevel = await _battery.batteryLevel;
-    
-    _sessionId = 'accident_${DateTime.now().millisecondsSinceEpoch}_${widget.userId}';
-    
-    _emergencyPacket = {
-      'sessionId': _sessionId,
-      'userId': widget.userId,
-      'emergencyType': 'accident_detected',
-      'detectionType': widget.detectionType,
-      'impactForce': widget.impactForce,
-      'timestamp': DateTime.now().toIso8601String(),
-      'location': _currentLocation != null ? {
-        'latitude': _currentLocation!.latitude,
-        'longitude': _currentLocation!.longitude,
-        'accuracy': _currentLocation!.accuracy,
-        'timestamp': _currentLocation!.timestamp?.toIso8601String(),
-      } : null,
-      'deviceStatus': {
-        'battery': batteryLevel,
-        'hasInternet': _hasInternet,
-        'locationAcquired': _isLocationAcquired,
-      },
-      'emergencyContacts': widget.emergencyContacts,
-      'motionPattern': _motionPattern,
-      'acceleration': _currentAcceleration,
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-
-    // Persist locally immediately
-    await _saveEmergencyPacketLocally();
-  }
-
-  Future<void> _saveEmergencyPacketLocally() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('pending_emergency', jsonEncode(_emergencyPacket));
-      debugPrint('💾 Emergency packet saved locally');
     } catch (e) {
-      debugPrint('❌ Failed to save emergency packet: $e');
+      debugPrint("Error initializing Bluetooth: $e");
     }
   }
+
+  Future<void> _requestBluetoothPermissions() async {
+    if (Theme.of(context).platform == TargetPlatform.android) {
+      // Android 12+ requires different permissions
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+        Permission.location,
+      ].request();
+
+      bool allGranted = statuses.values.every((status) => status.isGranted);
+      
+      if (!allGranted) {
+        debugPrint("Bluetooth permissions not granted");
+      }
+    } else if (Theme.of(context).platform == TargetPlatform.iOS) {
+      // iOS permissions are handled automatically
+      await Permission.bluetooth.request();
+    }
+  }
+
+  Future<void> _startBluetoothScan() async {
+    if (_isBluetoothScanning) return;
+
+    try {
+      setState(() => _isBluetoothScanning = true);
+
+      // Start scanning
+      await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 30),
+        androidUsesFineLocation: true,
+      );
+
+      // Listen to scan results
+      _scanSubscription = FlutterBluePlus.scanResults.listen(
+        (results) {
+          if (!mounted) return;
+
+          for (ScanResult result in results) {
+            final device = result.device;
+            final rssi = result.rssi;
+            
+            // Get device name (may be empty for some devices)
+            String deviceName = device.platformName.isNotEmpty 
+                ? device.platformName 
+                : device.remoteId.toString().substring(0, 17);
+
+            // Determine device type from advertised data
+            String deviceType = _determineDeviceType(result);
+
+            // Update or add device
+            setState(() {
+              _nearbyDevices[device.remoteId.toString()] = BluetoothDeviceInfo(
+                id: device.remoteId.toString(),
+                name: deviceName,
+                rssi: rssi,
+                lastSeen: DateTime.now(),
+                deviceType: deviceType,
+              );
+            });
+          }
+
+          // Remove devices not seen in last 10 seconds
+          _cleanupStaleDevices();
+        },
+        onError: (e) {
+          debugPrint("Scan error: $e");
+        },
+      );
+    } catch (e) {
+      debugPrint("Error starting Bluetooth scan: $e");
+      setState(() => _isBluetoothScanning = false);
+    }
+  }
+
+  String _determineDeviceType(ScanResult result) {
+    // Check service UUIDs to determine device type
+    final serviceUuids = result.advertisementData.serviceUuids;
+    
+    // Common Bluetooth service UUIDs
+    if (serviceUuids.any((uuid) => uuid.toString().contains('180f'))) {
+      return 'phone'; // Battery service - common in phones
+    } else if (serviceUuids.any((uuid) => uuid.toString().contains('180a'))) {
+      return 'computer'; // Device Information - common in computers
+    } else if (serviceUuids.any((uuid) => uuid.toString().contains('110b'))) {
+      return 'headphones'; // Audio Sink - headphones/speakers
+    } else if (serviceUuids.any((uuid) => uuid.toString().contains('1816'))) {
+      return 'watch'; // Cycling Speed and Cadence - fitness devices
+    }
+    
+    // Fallback: try to guess from device name
+    final name = result.device.platformName.toLowerCase();
+    if (name.contains('phone') || name.contains('iphone') || name.contains('galaxy')) {
+      return 'phone';
+    } else if (name.contains('mac') || name.contains('laptop') || name.contains('pc')) {
+      return 'computer';
+    } else if (name.contains('airpod') || name.contains('headphone') || name.contains('buds')) {
+      return 'headphones';
+    } else if (name.contains('watch') || name.contains('band') || name.contains('fit')) {
+      return 'watch';
+    }
+    
+    return 'unknown';
+  }
+
+  void _cleanupStaleDevices() {
+    final now = DateTime.now();
+    final staleDeviceIds = <String>[];
+
+    for (var entry in _nearbyDevices.entries) {
+      if (now.difference(entry.value.lastSeen).inSeconds > 10) {
+        staleDeviceIds.add(entry.key);
+      }
+    }
+
+    if (staleDeviceIds.isNotEmpty) {
+      setState(() {
+        for (var id in staleDeviceIds) {
+          _nearbyDevices.remove(id);
+        }
+      });
+    }
+  }
+
+  Future<void> _stopBluetoothScan() async {
+    try {
+      await FlutterBluePlus.stopScan();
+      await _scanSubscription?.cancel();
+      _scanSubscription = null;
+      setState(() => _isBluetoothScanning = false);
+    } catch (e) {
+      debugPrint("Error stopping Bluetooth scan: $e");
+    }
+  }
+
+  // ============================================================================
+  // COUNTDOWN & EMERGENCY LOGIC
+  // ============================================================================
 
   void _startCountdown() {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -307,160 +344,84 @@ class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
       if (countdown > 0) {
         setState(() => countdown--);
         
-        // Escalating vibration
         if (countdown <= 3) {
-          Vibration.vibrate(duration: 200, amplitude: 255);
+          HapticFeedback.heavyImpact();
+          _shakeController.forward(from: 0);
         } else if (countdown <= 5) {
-          Vibration.vibrate(duration: 100);
+          HapticFeedback.mediumImpact();
+        } else {
+          HapticFeedback.lightImpact();
         }
       } else {
         timer.cancel();
         _triggerEmergency();
-=======
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
-
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (countdown > 0) {
-        setState(() {
-          countdown--;
-        });
-      } else {
-        timer.cancel();
-        // SOS would be sent automatically here
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     });
   }
 
-<<<<<<< HEAD
+  void _startSimulation() {
+    final random = math.Random();
+    
+    _simulationTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (!mounted) return;
+      
+      setState(() {
+        // Simulate motion analysis
+        _currentAcceleration = 8.0 + random.nextDouble() * 2.0;
+        
+        if (_currentAcceleration < 3) {
+          _motionPattern = 'No movement detected';
+        } else if (_currentAcceleration < 6) {
+          _motionPattern = 'Minor motion detected';
+        } else if (_currentAcceleration < 9) {
+          _motionPattern = 'Significant motion';
+        } else {
+          _motionPattern = 'Severe impact pattern';
+        }
+
+        // Randomly toggle internet (simulating network issues)
+        if (random.nextDouble() > 0.9) {
+          _hasInternet = !_hasInternet;
+        }
+      });
+    });
+  }
+
+  void _simulateLocationAcquisition() {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _isLocationAcquired = true;
+          _locationText = '37.7749° N, 122.4194° W';
+          _locationAccuracy = 8.5;
+        });
+      }
+    });
+  }
+
   Future<void> _triggerEmergency() async {
     if (_emergencyTriggered) return;
     
     setState(() => _emergencyTriggered = true);
-    
-    // Final critical vibration
-    Vibration.vibrate(duration: 1500, amplitude: 255);
+    HapticFeedback.heavyImpact();
 
-    if (_hasInternet) {
-      await _triggerOnlineEmergency();
-    } else {
-      await _triggerDTNEmergency();
-    }
-  }
+    await Future.delayed(const Duration(milliseconds: 500));
+    HapticFeedback.heavyImpact();
 
-  Future<void> _triggerOnlineEmergency() async {
-    try {
-      debugPrint('🌐 Triggering ONLINE emergency');
-      
-      // Create emergency session via EmergencyService
-      final sessionId = await _emergencyService.createEmergencySession(
-        userId: widget.userId,
-        triggerType: 'accident_${widget.detectionType}',
-        emergencyContacts: widget.emergencyContacts,
-        initialLocation: _currentLocation,
-        additionalData: {
-          'impactForce': widget.impactForce,
-          'detectionType': widget.detectionType,
-          'motionPattern': _motionPattern,
-          'autoDetected': true,
-        },
+    if (mounted) {
+      _showEmergencyDialog(
+        'Emergency Activated',
+        _hasInternet
+            ? 'Emergency alert sent to all contacts via SMS, call, and app notification.'
+            : 'Emergency broadcast initiated via Bluetooth mesh and DTN network.',
+        true,
       );
-
-      // Log to Firestore
-      await _firestore.collection('accident_detections').add({
-        'sessionId': sessionId,
-        'userId': widget.userId,
-        'impactForce': widget.impactForce,
-        'detectionType': widget.detectionType,
-        'location': _currentLocation != null ? {
-          'latitude': _currentLocation!.latitude,
-          'longitude': _currentLocation!.longitude,
-        } : null,
-        'timestamp': FieldValue.serverTimestamp(),
-        'triggered': true,
-        'mode': 'online',
-      });
-
-      // Clear local emergency packet
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('pending_emergency');
-
-      _showSuccessMessage('Emergency sent to all contacts');
-      
-      // Navigate to emergency active screen
-      await Future.delayed(const Duration(milliseconds: 500));
-      _navigateToEmergencyActive();
-      
-    } catch (e) {
-      debugPrint('❌ Online emergency failed: $e');
-      // Fallback to DTN
-      await _triggerDTNEmergency();
     }
-  }
 
-  Future<void> _triggerDTNEmergency() async {
-    try {
-      debugPrint('📡 Triggering DTN emergency (OFFLINE MODE)');
-      
-      setState(() => _dtnModeActive = true);
-      
-      // Initialize DTN service
-      await _dtnService.initialize(
-        userId: widget.userId,
-        emergencyPacket: _emergencyPacket!,
-      );
-
-      // Start DTN broadcasting
-      await _dtnService.startBroadcasting();
-
-      _showWarningMessage('Offline mode - Broadcasting via DTN');
-      
-      // Navigate to Emergency Beacon Screen
-      await Future.delayed(const Duration(milliseconds: 500));
-      _navigateToDTNBeacon();
-      
-    } catch (e) {
-      debugPrint('❌ DTN emergency failed: $e');
-      _showErrorMessage('Failed to trigger emergency');
-    }
-  }
-
-  Future<void> _syncDTNToOnline() async {
-    try {
-      debugPrint('🔄 Syncing DTN to Online');
-      
-      // Get DTN packet
-      final dtnPacket = await _dtnService.getEmergencyPacket();
-      
-      if (dtnPacket != null) {
-        // Upload to Firestore
-        await _firestore
-            .collection('emergency_sessions')
-            .doc(dtnPacket['sessionId'])
-            .set({
-          ...dtnPacket,
-          'syncedFromDTN': true,
-          'syncTimestamp': FieldValue.serverTimestamp(),
-        });
-
-        // Send notifications
-        await _emergencyService.createEmergencySession(
-          userId: widget.userId,
-          triggerType: 'accident_${widget.detectionType}_dtn_sync',
-          emergencyContacts: widget.emergencyContacts,
-          initialLocation: _currentLocation,
-          additionalData: dtnPacket,
-        );
-
-        _showSuccessMessage('Emergency synced to cloud');
-        
-        // Stop DTN mode
-        await _dtnService.stopBroadcasting();
-        setState(() => _dtnModeActive = false);
-      }
-    } catch (e) {
-      debugPrint('❌ DTN sync failed: $e');
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      Navigator.pop(context); // Close dialog
+      _navigateToActiveEmergency();
     }
   }
 
@@ -475,35 +436,7 @@ class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Color(0xFF40916C), size: 28),
-            SizedBox(width: 12),
-            Text('Are You Safe?', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: const Text(
-          'This will cancel the emergency alert. Only confirm if you are uninjured.',
-          style: TextStyle(color: Colors.white70, fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('No, Send SOS', style: TextStyle(color: Colors.red)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF40916C),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: const Text('Yes, I\'m Safe', style: TextStyle(fontSize: 16)),
-          ),
-        ],
-      ),
+      builder: (context) => _buildCancelDialog(),
     );
 
     if (confirmed != true) return;
@@ -511,55 +444,78 @@ class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
     HapticFeedback.mediumImpact();
     _countdownTimer?.cancel();
 
-    try {
-      // Cancel in both modes
-      if (_hasInternet) {
-        await _emergencyService.cancelEmergency(
-          reason: 'False detection - User confirmed safe',
-        );
-      }
-      
-      if (_dtnModeActive) {
-        await _dtnService.broadcastCancellation(_sessionId);
-      }
+    _showEmergencyDialog(
+      'Emergency Cancelled',
+      'You have confirmed you are safe. The emergency alert has been cancelled.',
+      false,
+    );
 
-      // Log cancellation
-      await _firestore.collection('accident_detections').add({
-        'sessionId': _sessionId,
-        'userId': widget.userId,
-        'impactForce': widget.impactForce,
-        'detectionType': widget.detectionType,
-        'timestamp': FieldValue.serverTimestamp(),
-        'triggered': false,
-        'cancelled': true,
-        'cancellationReason': 'User confirmed safe',
-      });
-
-      // Clear local storage
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('pending_emergency');
-
-      _showSuccessMessage('Emergency cancelled');
-      
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    await Future.delayed(const Duration(seconds: 2));
+    
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (mounted) {
       Navigator.popUntil(context, (route) => route.isFirst);
-      
-    } catch (e) {
-      debugPrint('❌ Cancellation failed: $e');
-      _showErrorMessage('Failed to cancel');
     }
   }
 
-  void _navigateToEmergencyActive() {
-    // Navigate to active emergency monitoring screen
+  void _navigateToActiveEmergency() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => Scaffold(
-          body: Center(
-            child: Text(
-              'Emergency Active - Navigate to monitoring screen',
-              style: TextStyle(color: Colors.white),
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.emergency,
+                    color: Color(0xFFFF4444),
+                    size: 80,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'EMERGENCY ACTIVE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Help is on the way',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+                  ElevatedButton(
+                    onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00FF88),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 48,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Return to Home',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -567,200 +523,194 @@ class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
     );
   }
 
-  void _navigateToDTNBeacon() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => EmergencyBeaconScreen(
-          sessionId: _sessionId,
-          emergencyPacket: _emergencyPacket!,
-          userId: widget.userId,
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: const Color(0xFF40916C),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showWarningMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.warning, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: const Color(0xFFFFAA00),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: const Color(0xFFFF5252),
-        duration: const Duration(seconds: 3),
-      ),
+  void _showEmergencyDialog(String title, String message, bool isAlert) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _buildEmergencyDialog(title, message, isAlert),
     );
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
-    _sensorMonitorTimer?.cancel();
-    _connectivitySubscription?.cancel();
-    _locationSubscription?.cancel();
-    _accelerometerSubscription?.cancel();
-    
+    _simulationTimer?.cancel();
+    _scanSubscription?.cancel();
+    _adapterStateSubscription?.cancel();
+    _stopBluetoothScan();
     _countdownController.dispose();
     _pulseController.dispose();
-    _impactWaveController.dispose();
-    _alertController.dispose();
-    
+    _glowController.dispose();
+    _shakeController.dispose();
+    _rippleController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    Vibration.cancel();
-    
-=======
-  @override
-  void dispose() {
-    _progressController.dispose();
-    _pulseController.dispose();
-    _countdownTimer.cancel();
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0A),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildAlertHeader(),
-              const SizedBox(height: 20),
-              _buildStatusIndicators(),
-              const SizedBox(height: 24),
-              _buildDetectionInfo(),
-              const SizedBox(height: 32),
-              Expanded(child: _buildCountdownDisplay()),
-              const SizedBox(height: 32),
-              _buildActionButtons(),
-              const SizedBox(height: 24),
-              _buildFooterInfo(),
-              const SizedBox(height: 20),
-            ],
-          ),
-=======
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildCriticalAlertHeader(),
-            const SizedBox(height: 30),
-            _buildAccidentTitle(),
-            const SizedBox(height: 40),
-            Expanded(
-              child: _buildCountdownTimer(),
+        backgroundColor: Colors.black,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF0A0A0A),
+                const Color(0xFF1A0505),
+                const Color(0xFF0A0A0A),
+              ],
             ),
-            const SizedBox(height: 30),
-            _buildSendingStatus(),
-            const SizedBox(height: 30),
-            _buildLocationSection(),
-            const SizedBox(height: 30),
-            _buildCancelInfo(),
-            const SizedBox(height: 20),
-            _buildSafeButton(),
-            const SizedBox(height: 16),
-            _buildCallButton(),
-            const SizedBox(height: 20),
-          ],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                _buildAnimatedBackground(),
+                _buildMainContent(),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-<<<<<<< HEAD
+  Widget _buildAnimatedBackground() {
+    return AnimatedBuilder(
+      animation: _rippleController,
+      builder: (context, child) {
+        return Stack(
+          children: List.generate(4, (index) {
+            final progress = (_rippleController.value + index * 0.25) % 1.0;
+            final size = MediaQuery.of(context).size.width * (1 + progress * 2);
+            final opacity = (1 - progress) * 0.05;
+
+            return Positioned(
+              top: MediaQuery.of(context).size.height / 2 - size / 2,
+              left: MediaQuery.of(context).size.width / 2 - size / 2,
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFFF4444).withOpacity(opacity),
+                    width: 2,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+  Widget _buildMainContent() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildAlertHeader(),
+            const SizedBox(height: 24),
+            _buildQuickStats(),
+            const SizedBox(height: 28),
+            _buildCountdownCircle(),
+            const SizedBox(height: 28),
+            _buildDetailsCard(),
+            const SizedBox(height: 20),
+            if (_nearbyDevices.isNotEmpty) _buildBluetoothSection(),
+            if (_nearbyDevices.isNotEmpty) const SizedBox(height: 24),
+            _buildActionButtons(),
+            const SizedBox(height: 16),
+            _buildNetworkStatus(),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildAlertHeader() {
     return AnimatedBuilder(
-      animation: _alertController,
+      animation: _glowController,
       builder: (context, child) {
         return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 Color.lerp(
-                  const Color(0xFFFF3030),
-                  const Color(0xFFFF5252),
-                  _alertController.value,
-                )!,
-                const Color(0xFFFF5252),
+                  const Color(0xFFFF4444),
+                  const Color(0xFFFF2020),
+                  _glowController.value,
+                )!.withOpacity(0.2),
+                const Color(0xFFFF4444).withOpacity(0.1),
               ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFFF4444).withOpacity(0.5),
+              width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFFF5252).withOpacity(0.5),
-                blurRadius: 30,
-                spreadRadius: 5,
+                color: const Color(0xFFFF4444).withOpacity(0.3),
+                blurRadius: 24,
+                spreadRadius: 4,
               ),
             ],
           ),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.emergency, color: Colors.white, size: 32),
-                  SizedBox(width: 12),
-                  Text(
-                    'ACCIDENT DETECTED',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.emergency,
+                  color: Colors.white,
+                  size: 40,
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _getDetectionTypeText(),
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  letterSpacing: 0.5,
+              const SizedBox(height: 16),
+              const Text(
+                'ACCIDENT DETECTED',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  _getDetectionTypeText(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
@@ -773,680 +723,327 @@ class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
   String _getDetectionTypeText() {
     switch (widget.detectionType) {
       case 'crash':
-        return 'Vehicle Crash Detected';
+        return 'VEHICLE CRASH IMPACT';
       case 'fall':
-        return 'Severe Fall Detected';
+        return 'SEVERE FALL DETECTED';
       case 'sudden_stop':
-        return 'Sudden Impact Detected';
+        return 'SUDDEN IMPACT EVENT';
       default:
-        return 'Impact Detected';
+        return 'HIGH IMPACT DETECTED';
     }
   }
 
-  Widget _buildStatusIndicators() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatusCard(
-              _hasInternet ? Icons.wifi : Icons.wifi_off,
-              _hasInternet ? 'ONLINE' : 'OFFLINE',
-              _hasInternet ? const Color(0xFF40916C) : const Color(0xFFFF5252),
-            ),
+  Widget _buildQuickStats() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            icon: _hasInternet ? Icons.wifi : Icons.wifi_off,
+            label: 'Network',
+            value: _hasInternet ? 'Online' : 'Offline',
+            color: _hasInternet ? const Color(0xFF00FF88) : const Color(0xFFFF4444),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatusCard(
-              _isLocationAcquired ? Icons.gps_fixed : Icons.gps_not_fixed,
-              _isLocationAcquired ? 'GPS OK' : 'ACQUIRING',
-              _isLocationAcquired ? const Color(0xFF40916C) : const Color(0xFFFFAA00),
-            ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            icon: _isLocationAcquired ? Icons.gps_fixed : Icons.gps_not_fixed,
+            label: 'GPS',
+            value: _isLocationAcquired ? '±${_locationAccuracy.toInt()}m' : 'Acquiring',
+            color: _isLocationAcquired ? const Color(0xFF00FF88) : const Color(0xFFFFAA00),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatusCard(
-              Icons.sensors,
-              '${widget.impactForce.toStringAsFixed(1)}G',
-              widget.impactForce > 20 ? const Color(0xFFFF5252) : const Color(0xFFFFAA00),
-            ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.bluetooth,
+            label: 'Nearby',
+            value: '${_nearbyDevices.length}',
+            color: _bluetoothEnabled ? const Color(0xFF4A9EFF) : const Color(0xFF666666),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStatusCard(IconData icon, String text, Color color) {
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 10,
-            spreadRadius: 1,
-          ),
-        ],
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1.5,
+        ),
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 8),
           Text(
-            text,
+            value,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
             ),
-            textAlign: TextAlign.center,
-=======
-  Widget _buildCriticalAlertHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFFF5252),
-            Color(0xFFFF6B6B),
-          ],
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(
-            Icons.warning,
-            color: Colors.white,
-            size: 32,
           ),
-          SizedBox(width: 12),
+          const SizedBox(height: 4),
           Text(
-            'CRITICAL ALERT',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
+            label,
+            style: const TextStyle(
+              color: Color(0xFF666666),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ],
       ),
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildDetectionInfo() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'LOCATION',
-                    style: TextStyle(
-                      color: Color(0xFF808080),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _locationText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              if (_locationAccuracy > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getAccuracyColor(),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '±${_locationAccuracy.toStringAsFixed(0)}m',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'MOTION ANALYSIS',
-                    style: TextStyle(
-                      color: Color(0xFF808080),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _motionPattern,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF5252).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFF5252)),
-                ),
-                child: Text(
-                  '${_currentAcceleration.toStringAsFixed(1)} m/s²',
-                  style: const TextStyle(
-                    color: Color(0xFFFF5252),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildCountdownCircle() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _countdownController,
+        _pulseController,
+        _glowController,
+        _shakeController,
+      ]),
+      builder: (context, child) {
+        final pulseValue = math.sin(_pulseController.value * 2 * math.pi);
+        final glowValue = _glowController.value;
+        final shakeValue = math.sin(_shakeController.value * math.pi * 4) * 8;
 
-  Color _getAccuracyColor() {
-    if (_locationAccuracy <= 10) return const Color(0xFF40916C);
-    if (_locationAccuracy <= 50) return const Color(0xFFFFAA00);
-    return const Color(0xFFFF5252);
-  }
-
-  Widget _buildCountdownDisplay() {
-    return Center(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([
-          _countdownController,
-          _pulseController,
-          _impactWaveController,
-        ]),
-        builder: (context, child) {
-          final pulseValue = math.sin(_pulseController.value * 2 * math.pi);
-          final waveValue = _impactWaveController.value;
-          
-          return Stack(
+        return Transform.translate(
+          offset: Offset(shakeValue, 0),
+          child: Stack(
             alignment: Alignment.center,
             children: [
-              // Impact waves
+              // Outer ripples
               for (int i = 0; i < 3; i++)
                 Container(
-                  width: 300 + (waveValue * 150) + (i * 40),
-                  height: 300 + (waveValue * 150) + (i * 40),
+                  width: 300 + (i * 40) + (pulseValue * 20),
+                  height: 300 + (i * 40) + (pulseValue * 20),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFFFF5252).withOpacity(
-                        (1 - waveValue) * (1 - i * 0.3),
+                      color: const Color(0xFFFF4444).withOpacity(
+                        (0.4 - i * 0.12) * (1 - _pulseController.value),
                       ),
-                      width: 3,
+                      width: 2,
                     ),
                   ),
                 ),
-              // Pulsing glow
-              Container(
-                width: 280 + (pulseValue * 20),
-                height: 280 + (pulseValue * 20),
-=======
-  Widget _buildAccidentTitle() {
-    return Column(
-      children: const [
-        Text(
-          'POSSIBLE',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 42,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            height: 1.1,
-          ),
-        ),
-        Text(
-          'ACCIDENT',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 42,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            height: 1.1,
-          ),
-        ),
-        Text(
-          'DETECTED',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 42,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            height: 1.1,
-          ),
-        ),
-      ],
-    );
-  }
+              
+              // Progress ring
+              SizedBox(
+                width: 260,
+                height: 260,
+                child: CircularProgressIndicator(
+                  value: _countdownController.value,
+                  strokeWidth: 10,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color.lerp(
+                      const Color(0xFFFF8080),
+                      const Color(0xFFFF2020),
+                      glowValue,
+                    )!,
+                  ),
+                ),
+              ),
 
-  Widget _buildCountdownTimer() {
-    return Center(
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_progressController, _pulseController]),
-        builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              // Pulsing background glow
+              // Center circle
               Container(
-                width: 280 + (math.sin(_pulseController.value * 2 * math.pi) * 20),
-                height: 280 + (math.sin(_pulseController.value * 2 * math.pi) * 20),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+                width: 220,
+                height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-<<<<<<< HEAD
-                      const Color(0xFFFF5252).withOpacity(0.4),
-=======
-                      const Color(0xFFFF5252).withOpacity(0.3),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                      Colors.transparent,
+                      Color.lerp(
+                        const Color(0xFFFF5555),
+                        const Color(0xFFFF3333),
+                        glowValue,
+                      )!.withOpacity(0.6),
+                      const Color(0xFFFF2020).withOpacity(0.4),
                     ],
                   ),
-                ),
-              ),
-              // Progress ring
-              SizedBox(
-<<<<<<< HEAD
-                width: 250,
-                height: 250,
-                child: Transform.rotate(
-                  angle: -math.pi / 2,
-                  child: CircularProgressIndicator(
-                    value: _countdownController.value,
-                    strokeWidth: 10,
-                    backgroundColor: const Color(0xFF2A1A1A),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFFFF5252),
-                    ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 3,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF4444).withOpacity(0.6),
+                      blurRadius: 40,
+                      spreadRadius: 10,
+                    ),
+                  ],
                 ),
-              ),
-              // Inner circle
-              Container(
-                width: 220,
-                height: 220,
-=======
-                width: 240,
-                height: 240,
-                child: Transform.rotate(
-                  angle: -math.pi / 2,
-                  child: CircularProgressIndicator(
-                    value: _progressController.value,
-                    strokeWidth: 10,
-                    backgroundColor: const Color(0xFF2A1A1A),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF5252)),
-                  ),
-                ),
-              ),
-              // Dark background circle
-              Container(
-                width: 210,
-                height: 210,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF1A0A0A),
-                ),
-              ),
-<<<<<<< HEAD
-              // Countdown
-=======
-              // Countdown number
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    countdown.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 90,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      countdown.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 100,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black38,
+                            blurRadius: 20,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'SECONDS',
-                    style: TextStyle(
-                      color: Color(0xFF808080),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 2,
-                    ),
-                  ),
-<<<<<<< HEAD
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF5252).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFFF5252)),
-                    ),
-                    child: const Text(
-                      'Auto-sending SOS',
+                    const SizedBox(height: 4),
+                    Text(
+                      countdown == 1 ? 'SECOND' : 'SECONDS',
                       style: TextStyle(
-                        color: Color(0xFFFF5252),
+                        color: Colors.white.withOpacity(0.9),
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+                        letterSpacing: 2,
                       ),
                     ),
-                  ),
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                ],
+                  ],
+                ),
               ),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
-<<<<<<< HEAD
-  Widget _buildActionButtons() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+  Widget _buildDetailsCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1.5,
+        ),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'If this is a false alarm, cancel now',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF808080),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // I'm Safe Button
-          GestureDetector(
-            onTap: _cancelEmergency,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF40916C), Color(0xFF52B788)],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF40916C).withOpacity(0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A9EFF).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF4A9EFF).withOpacity(0.3),
+                    width: 1,
                   ),
-                ],
+                ),
+                child: const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF4A9EFF),
+                  size: 20,
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.white, size: 28),
-                  SizedBox(width: 12),
-                  Text(
-                    'I\'M SAFE - CANCEL',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Send SOS Now Button
-          GestureDetector(
-            onTap: _sendSOSNow,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFF5252), width: 2),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.emergency_share, color: Color(0xFFFF5252), size: 24),
-                  SizedBox(width: 12),
-                  Text(
-                    'SEND SOS NOW',
-                    style: TextStyle(
-                      color: Color(0xFFFF5252),
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-=======
-  Widget _buildSendingStatus() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A1A1A),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFFF5252),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0xFFFF5252),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            'Sending SOS via SMS in ${countdown}s...',
-            style: const TextStyle(
-              color: Color(0xFF808080),
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-<<<<<<< HEAD
-  Widget _buildFooterInfo() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            _hasInternet ? Icons.cloud : Icons.bluetooth,
-            color: _hasInternet ? const Color(0xFF40916C) : const Color(0xFF00E5CC),
-            size: 18,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _hasInternet
-                ? 'Emergency will be sent via Internet'
-                : 'Emergency will be sent via DTN Mesh',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-=======
-  Widget _buildLocationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'LOCATION OF EVENT',
-            style: TextStyle(
-              color: Color(0xFF808080),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          height: 180,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8E8E8),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              children: [
-                // Map placeholder
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFFD0D0D0),
-                        Color(0xFFE8E8E8),
-                      ],
-                    ),
-                  ),
-                ),
-                // Placeholder dimensions text
-                const Center(
-                  child: Text(
-                    '300×300',
-                    style: TextStyle(
-                      color: Color(0xFFB0B0B0),
-                      fontSize: 24,
-                    ),
-                  ),
-                ),
-                // Location marker
-                Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFFF5252).withOpacity(0.2),
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFF5252),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                '37.7749° N, 122.4194° W',
+              const SizedBox(width: 12),
+              const Text(
+                'Impact Details',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildDetailRow(
+            Icons.my_location,
+            'Location',
+            _locationText,
+            const Color(0xFF00FF88),
+          ),
+          const Divider(color: Color(0xFF2A2A2A), height: 24),
+          _buildDetailRow(
+            Icons.speed,
+            'Impact Force',
+            '${widget.impactForce.toStringAsFixed(1)}G',
+            const Color(0xFFFF4444),
+          ),
+          const Divider(color: Color(0xFF2A2A2A), height: 24),
+          _buildDetailRow(
+            Icons.analytics,
+            'Motion Pattern',
+            _motionPattern,
+            const Color(0xFFFFAA00),
+          ),
+          const Divider(color: Color(0xFF2A2A2A), height: 24),
+          _buildDetailRow(
+            Icons.battery_charging_full,
+            'Battery',
+            '$_batteryLevel%',
+            _batteryLevel > 20 ? const Color(0xFF00FF88) : const Color(0xFFFF4444),
+          ),
+          const Divider(color: Color(0xFF2A2A2A), height: 24),
+          _buildDetailRow(
+            Icons.fingerprint,
+            'Session ID',
+            _sessionId,
+            const Color(0xFF4A9EFF),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFF666666),
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
-                'Accuracy: 5m',
-                style: TextStyle(
-                  color: Color(0xFF808080),
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic,
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -1455,90 +1052,422 @@ class _AccidentDetectedScreenState extends State<AccidentDetectedScreen>
     );
   }
 
-  Widget _buildCancelInfo() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        'Tap if you are uninjured to cancel emergency\nprotocols',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: Color(0xFF808080),
-          fontSize: 14,
+  Widget _buildBluetoothSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.bluetooth_connected,
+                color: Color(0xFF4A9EFF),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Nearby Devices (${_nearbyDevices.length})',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const Spacer(),
+              if (_isBluetoothScanning)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4A9EFF)),
+                  ),
+                ),
+            ],
+          ),
         ),
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _nearbyDevices.length,
+            itemBuilder: (context, index) {
+              final device = _nearbyDevices.values.elementAt(index);
+              return _buildBluetoothCard(device);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBluetoothCard(BluetoothDeviceInfo device) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF4A9EFF).withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                device.deviceIcon,
+                color: const Color(0xFF4A9EFF),
+                size: 24,
+              ),
+              Row(
+                children: List.generate(
+                  device.signalStrength,
+                  (i) => Container(
+                    width: 3,
+                    height: 10 + (i * 2.5),
+                    margin: const EdgeInsets.only(left: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00FF88),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            device.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                device.distance,
+                style: const TextStyle(
+                  color: Color(0xFF00FF88),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '${device.rssi} dBm',
+                style: const TextStyle(
+                  color: Color(0xFF666666),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSafeButton() {
-    return GestureDetector(
-      onTap: () {
-        // Cancel the emergency and go back
-        Navigator.popUntil(context, (route) => route.isFirst);
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFFFF5252),
-              Color(0xFFFF6B6B),
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        Text(
+          'Emergency will be sent in ${countdown}s',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.7),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 20),
+        
+        // I'm Safe Button
+        Container(
+          width: double.infinity,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF00FF88), Color(0xFF00CC6E)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00FF88).withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFF5252).withOpacity(0.3),
-              blurRadius: 15,
-              spreadRadius: 2,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _cancelEmergency,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.black,
+                    size: 28,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'I\'M SAFE - CANCEL',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.check_circle, color: Colors.white, size: 28),
-            SizedBox(width: 12),
-            Text(
-              'I AM SAFE / CANCEL',
+        
+        const SizedBox(height: 12),
+        
+        // Send SOS Now Button
+        Container(
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFFF4444).withOpacity(0.5),
+              width: 2,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _sendSOSNow,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.emergency_share,
+                    color: Color(0xFFFF4444),
+                    size: 24,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'SEND SOS NOW',
+                    style: TextStyle(
+                      color: Color(0xFFFF4444),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNetworkStatus() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.05),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _hasInternet ? Icons.cloud_done : Icons.bluetooth,
+            color: _hasInternet ? const Color(0xFF00FF88) : const Color(0xFF4A9EFF),
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              _hasInternet
+                  ? 'Alert will be sent via Internet'
+                  : 'Alert will broadcast via Bluetooth & DTN',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1,
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCancelDialog() {
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+      child: AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: const Color(0xFF00FF88).withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00FF88).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Color(0xFF00FF88),
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Are You Safe?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
+        content: Text(
+          'This will cancel the emergency alert. Only confirm if you are completely safe and uninjured.',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 15,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text(
+              'No, Send Alert',
+              style: TextStyle(
+                color: Color(0xFFFF4444),
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF00FF88), Color(0xFF00CC6E)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Yes, I\'m Safe',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCallButton() {
-    return GestureDetector(
-      onTap: () {
-        // Trigger manual call to 911
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: const Color(0xFF3A3A3A), width: 1),
-        ),
-        child: const Center(
-          child: Text(
-            'MANUALLY CALL 911',
-            style: TextStyle(
-              color: Color(0xFF808080),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-            ),
+  Widget _buildEmergencyDialog(String title, String message, bool isAlert) {
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+      child: AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: (isAlert ? const Color(0xFFFF4444) : const Color(0xFF00FF88))
+                .withOpacity(0.3),
+            width: 2,
           ),
         ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (isAlert ? const Color(0xFFFF4444) : const Color(0xFF00FF88))
+                    .withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isAlert ? Icons.emergency : Icons.check_circle,
+                color: isAlert ? const Color(0xFFFF4444) : const Color(0xFF00FF88),
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 15,
+            height: 1.5,
+          ),
+        ),
       ),
     );
   }

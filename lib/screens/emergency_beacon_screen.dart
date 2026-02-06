@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -24,17 +23,11 @@ class EmergencyBeaconScreen extends StatefulWidget {
     required this.emergencyPacket,
     required this.userId,
   }) : super(key: key);
-=======
-
-class EmergencyBeaconScreen extends StatefulWidget {
-  const EmergencyBeaconScreen({Key? key}) : super(key: key);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   State<EmergencyBeaconScreen> createState() => _EmergencyBeaconScreenState();
 }
 
-<<<<<<< HEAD
 class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen>
     with TickerProviderStateMixin {
   // Services
@@ -602,36 +595,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen>
     
     super.dispose();
   }
-=======
-class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
-  bool isBeaconActive = true;
-  String privacyId = "4X92-LZ11";
-  String timeRemaining = "02:45";
-
-  final List<Map<String, dynamic>> nearbyPeers = [
-    {
-      'name': 'Node-771B',
-      'distance': '~12m',
-      'signal': -64,
-      'status': 'STRONG',
-      'color': Colors.green,
-    },
-    {
-      'name': 'Relay-Alpha',
-      'distance': '~45m',
-      'signal': -88,
-      'status': 'FADING',
-      'color': Colors.amber,
-    },
-    {
-      'name': 'Node-Z920',
-      'distance': 'Last seen 2m ago',
-      'signal': -98,
-      'status': 'LOST',
-      'color': Colors.grey,
-    },
-  ];
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   Widget build(BuildContext context) {
@@ -649,7 +612,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-<<<<<<< HEAD
         actions: [
           if (_packetDelivered)
             const Padding(
@@ -662,12 +624,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
               _hasInternet ? Icons.wifi : Icons.wifi_off,
               color: _hasInternet ? const Color(0xFF40916C) : const Color(0xFFFF5252),
             ),
-=======
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: Icon(Icons.signal_cellular_alt, color: Color(0xFF00E5CC)),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ],
       ),
@@ -676,7 +632,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-<<<<<<< HEAD
             _buildBeaconVisualization(),
             const SizedBox(height: 24),
             _buildBeaconModeCard(),
@@ -691,25 +646,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
             const SizedBox(height: 24),
             _buildActionButtons(),
             const SizedBox(height: 16),
-=======
-            // Beacon Mode Card
-            _buildBeaconModeCard(),
-            const SizedBox(height: 16),
-
-            // DTN Relay Status Card
-            _buildDTNRelayCard(),
-            const SizedBox(height: 16),
-
-            // Security/Privacy ID Card
-            _buildPrivacyIDCard(),
-            const SizedBox(height: 24),
-
-            // Nearby Peers Section
-            _buildNearbyPeersSection(),
-            const SizedBox(height: 16),
-
-            // Footer
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             _buildFooter(),
           ],
         ),
@@ -717,7 +653,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     );
   }
 
-<<<<<<< HEAD
   Widget _buildBeaconVisualization() {
     return Container(
       height: 200,
@@ -807,27 +742,20 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     });
   }
 
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   Widget _buildBeaconModeCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF143838),
         borderRadius: BorderRadius.circular(16),
-<<<<<<< HEAD
         border: Border.all(
           color: _isBeaconActive ? const Color(0xFF00E5CC) : const Color(0xFF1F4D4D),
           width: 2,
         ),
-=======
-        border: Border.all(color: const Color(0xFF1F4D4D), width: 1),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-<<<<<<< HEAD
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -860,21 +788,11 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                 ),
               ),
             ],
-=======
-          const Text(
-            'Beacon Mode',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Container(
-<<<<<<< HEAD
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
@@ -898,27 +816,11 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                   color: _isBeaconActive ? const Color(0xFF00E5CC) : Colors.grey,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-=======
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF00E5CC),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Broadcasting...',
-                style: TextStyle(
-                  color: Color(0xFF00E5CC),
-                  fontSize: 16,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-<<<<<<< HEAD
           Row(
             children: [
               Expanded(
@@ -939,17 +841,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                 activeTrackColor: const Color(0xFF1F4D4D),
               ),
             ],
-=======
-          Switch(
-            value: isBeaconActive,
-            onChanged: (value) {
-              setState(() {
-                isBeaconActive = value;
-              });
-            },
-            activeColor: const Color(0xFF00E5CC),
-            activeTrackColor: const Color(0xFF1F4D4D),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ],
       ),
@@ -979,16 +870,11 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
               ),
               Icon(
                 Icons.hub_outlined,
-<<<<<<< HEAD
                 color: _relayStatusColor,
-=======
-                color: const Color(0xFF00E5CC),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 size: 24,
               ),
             ],
           ),
-<<<<<<< HEAD
           const SizedBox(height: 12),
           Text(
             _relayStatus,
@@ -1030,32 +916,12 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
               Container(width: 1, height: 40, color: const Color(0xFF1F4D4D)),
               Expanded(child: _buildMetricItem('Battery', '$_batteryLevel%')),
             ],
-=======
-          const SizedBox(height: 8),
-          const Text(
-            'Active Hop',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'CONNECTED',
-            style: TextStyle(
-              color: Color(0xFF00CC88),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ],
       ),
     );
   }
 
-<<<<<<< HEAD
   Widget _buildMetricItem(String label, String value) {
     return Column(
       children: [
@@ -1080,8 +946,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     );
   }
 
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   Widget _buildPrivacyIDCard() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1116,7 +980,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-<<<<<<< HEAD
                   _privacyId,
                   style: const TextStyle(
                     color: Color(0xFF00E5CC),
@@ -1142,29 +1005,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: _regeneratePrivacyId,
-=======
-                  privacyId,
-                  style: const TextStyle(
-                    color: Color(0xFF00E5CC),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Auto-rotates in $timeRemaining',
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // Regenerate ID logic
-                  },
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Regenerate ID'),
                   style: ElevatedButton.styleFrom(
@@ -1183,7 +1023,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
             ),
           ),
           const SizedBox(width: 16),
-<<<<<<< HEAD
           SizedBox(
             width: 100,
             height: 140,
@@ -1209,19 +1048,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                   size: 48,
                 ),
               ],
-=======
-          Container(
-            width: 120,
-            height: 160,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1F4D4D),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.shield,
-              color: Color(0xFF00E5CC),
-              size: 48,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
         ],
@@ -1231,20 +1057,13 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
 
   Widget _buildNearbyPeersSection() {
     return Column(
-<<<<<<< HEAD
       crossAxisAlignment: CrossAxisAlignment.start,
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-<<<<<<< HEAD
               'Nearby Peers',
-=======
-              'Nearby Peers Found',
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -1257,15 +1076,9 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                 color: const Color(0xFF1F4D4D),
                 borderRadius: BorderRadius.circular(12),
               ),
-<<<<<<< HEAD
               child: Text(
                 '$_nearbyPeerCount ONLINE',
                 style: const TextStyle(
-=======
-              child: const Text(
-                '6 ONLINE',
-                style: TextStyle(
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   color: Color(0xFF00E5CC),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1275,19 +1088,14 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
           ],
         ),
         const SizedBox(height: 16),
-<<<<<<< HEAD
         if (_nearbyPeers.isEmpty)
           _buildNoPeersPlaceholder()
         else
           ..._nearbyPeers.map((peer) => _buildPeerCard(peer)),
-=======
-        ...nearbyPeers.map((peer) => _buildPeerCard(peer)),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       ],
     );
   }
 
-<<<<<<< HEAD
   Widget _buildNoPeersPlaceholder() {
     return Container(
       padding: const EdgeInsets.all(32),
@@ -1327,9 +1135,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     final status = _getPeerStatus(signal);
     final color = _getPeerColor(signal);
 
-=======
-  Widget _buildPeerCard(Map<String, dynamic> peer) {
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -1346,18 +1151,11 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF1F4D4D),
               shape: BoxShape.circle,
-<<<<<<< HEAD
               border: Border.all(color: color, width: 2),
             ),
             child: Icon(
               peer['isGateway'] == true ? Icons.router : Icons.person,
               color: color,
-=======
-            ),
-            child: Icon(
-              Icons.person,
-              color: peer['color'],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
           const SizedBox(width: 16),
@@ -1366,11 +1164,7 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-<<<<<<< HEAD
                   peer['name'] ?? 'Node-${peer['id']?.substring(0, 4)}',
-=======
-                  peer['name'],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -1379,11 +1173,7 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-<<<<<<< HEAD
                   peer['distance'] ?? '~${_estimateDistance(signal)}m',
-=======
-                  peer['distance'],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   style: const TextStyle(
                     color: Colors.white54,
                     fontSize: 13,
@@ -1396,30 +1186,18 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-<<<<<<< HEAD
                 '$signal dBm',
                 style: TextStyle(
                   color: color,
-=======
-                '${peer['signal']} dBm',
-                style: TextStyle(
-                  color: peer['color'],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-<<<<<<< HEAD
                 status,
                 style: TextStyle(
                   color: color,
-=======
-                peer['status'],
-                style: TextStyle(
-                  color: peer['color'],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   fontSize: 11,
                 ),
               ),
@@ -1428,11 +1206,7 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
           const SizedBox(width: 8),
           Icon(
             Icons.signal_cellular_alt,
-<<<<<<< HEAD
             color: color,
-=======
-            color: peer['color'],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             size: 24,
           ),
         ],
@@ -1440,7 +1214,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     );
   }
 
-<<<<<<< HEAD
   String _getPeerStatus(int signal) {
     if (signal > -60) return 'STRONG';
     if (signal > -80) return 'GOOD';
@@ -1514,8 +1287,6 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     );
   }
 
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1537,26 +1308,17 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
             ),
           ),
           const SizedBox(width: 24),
-<<<<<<< HEAD
           Text(
             'Session: ${widget.sessionId.substring(0, 8)}',
             style: const TextStyle(
               color: Colors.white38,
               fontSize: 11,
-=======
-          const Text(
-            'V2.4.0-STABLE',
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 12,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
         ],
       ),
     );
   }
-<<<<<<< HEAD
 
   String _getTimeAgo(DateTime time) {
     final diff = DateTime.now().difference(time);
@@ -1566,6 +1328,4 @@ class _EmergencyBeaconScreenState extends State<EmergencyBeaconScreen> {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
   }
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 }

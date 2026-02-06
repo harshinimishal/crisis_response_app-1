@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'auth_service.dart';
 import 'otp_screen.dart';
-=======
-import '../routes/app_routes.dart';
-import 'auth_service.dart';
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 class RecoverAccessScreen extends StatefulWidget {
   const RecoverAccessScreen({Key? key}) : super(key: key);
@@ -69,7 +64,6 @@ class _RecoverAccessScreenState extends State<RecoverAccessScreen> {
 
       // Navigate to OTP screen
       if (mounted) {
-<<<<<<< HEAD
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -79,9 +73,6 @@ class _RecoverAccessScreenState extends State<RecoverAccessScreen> {
             ),
           ),
         );
-=======
-        Navigator.pushNamed(context, AppRoutes.otp);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     } else {
       setState(() {

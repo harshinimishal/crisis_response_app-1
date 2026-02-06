@@ -1,14 +1,13 @@
 import 'dart:async';
-<<<<<<< HEAD
 import 'emergency_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-=======
-import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import '../routes/app_routes.dart';
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+/// UPDATED: Impact Detection no longer requests permissions
+/// since accelerometer/gyroscope don't require runtime permissions
+/// The toggle now just enables/disables the feature
 class SafetyPermissionsScreen extends StatefulWidget {
   const SafetyPermissionsScreen({Key? key}) : super(key: key);
 
@@ -20,11 +19,15 @@ class SafetyPermissionsScreen extends StatefulWidget {
 class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
     with WidgetsBindingObserver {
   bool _emergencyLocation = false;
-  bool _impactDetection = false;
+  bool _impactDetection = false; // Now just a feature toggle, not a permission
   bool _safetyAlerts = false;
   bool _rescueMesh = false;
 
   bool _isRequesting = false;
+  
+  // Firebase instances
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -48,17 +51,47 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
 
   Future<void> _checkAllPermissions() async {
     final locationStatus = await Permission.location.status;
-    final sensorStatus = await Permission.sensors.status;
     final notificationStatus = await Permission.notification.status;
     final bluetoothStatus = await Permission.bluetoothConnect.status;
 
     if (mounted) {
       setState(() {
         _emergencyLocation = locationStatus.isGranted;
-        _impactDetection = sensorStatus.isGranted;
+        // Impact detection state could be loaded from SharedPreferences or Firebase
+        // For now, we'll keep it as-is (user toggles it manually)
         _safetyAlerts = notificationStatus.isGranted;
         _rescueMesh = bluetoothStatus.isGranted;
       });
+    }
+  }
+
+  /// Update Firebase with current permission states and feature toggles
+  Future<void> _updateFirebasePermissions() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // Build the permissions array - only include granted permissions/enabled features
+      List<String> grantedPermissions = [];
+      if (_emergencyLocation) grantedPermissions.add('emergencyLocation');
+      if (_impactDetection) grantedPermissions.add('impactDetection'); // Feature enabled
+      if (_safetyAlerts) grantedPermissions.add('safetyAlerts');
+      if (_rescueMesh) grantedPermissions.add('rescueMesh');
+
+      // Update Firestore document
+      await _firestore.collection('users').doc(user.uid).update({
+        'emergencyLocation': _emergencyLocation,
+        'impactDetection': _impactDetection, // This is now a feature toggle
+        'safetyAlerts': _safetyAlerts,
+        'rescueMesh': _rescueMesh,
+        'permissionsGranted': grantedPermissions,
+      });
+
+      debugPrint('Firebase permissions updated successfully');
+    } catch (e) {
+      debugPrint('Error updating Firebase permissions: $e');
+      // Optionally show error to user
+      // _showError('Failed to sync permissions. Please try again.');
     }
   }
 
@@ -67,6 +100,7 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
 
     if (!value) {
       setState(() => _emergencyLocation = false);
+      await _updateFirebasePermissions();
       return;
     }
 
@@ -103,6 +137,9 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
           _isRequesting = false;
         });
 
+        // Update Firebase after permission change
+        await _updateFirebasePermissions();
+
         if (!status.isGranted) {
           _handlePermissionDenied(status, 'Location',
               'Location permission is needed for Emergency Location');
@@ -114,45 +151,30 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
           _emergencyLocation = false;
           _isRequesting = false;
         });
+        await _updateFirebasePermissions();
         _showError('Error requesting location permission');
       }
     }
   }
 
-  Future<void> _requestSensorPermission(bool value) async {
-    if (_isRequesting) return;
-
-    if (!value) {
-      setState(() => _impactDetection = false);
-      return;
-    }
-
-    setState(() => _isRequesting = true);
-
-    try {
-      final status = await Permission.sensors.request().timeout(
-        const Duration(seconds: 10),
+  /// Impact Detection - No permission needed!
+  /// This just toggles the feature on/off
+  /// Sensors (accelerometer/gyroscope) don't require permissions
+  Future<void> _toggleImpactDetection(bool value) async {
+    setState(() => _impactDetection = value);
+    
+    // Update Firebase with the feature state
+    await _updateFirebasePermissions();
+    
+    if (value) {
+      // Show a helpful message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impact Detection enabled'),
+          backgroundColor: Color(0xFF06D6A0),
+          duration: Duration(seconds: 2),
+        ),
       );
-
-      if (mounted) {
-        setState(() {
-          _impactDetection = status.isGranted;
-          _isRequesting = false;
-        });
-
-        if (!status.isGranted) {
-          _handlePermissionDenied(
-              status, 'Sensors', 'Sensor access is needed for Impact Detection');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _impactDetection = false;
-          _isRequesting = false;
-        });
-        _showError('Error requesting sensor permission');
-      }
     }
   }
 
@@ -161,6 +183,7 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
 
     if (!value) {
       setState(() => _safetyAlerts = false);
+      await _updateFirebasePermissions();
       return;
     }
 
@@ -177,6 +200,9 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
           _isRequesting = false;
         });
 
+        // Update Firebase after permission change
+        await _updateFirebasePermissions();
+
         if (!status.isGranted) {
           _handlePermissionDenied(status, 'Notifications',
               'Notification permission is needed for Safety Alerts');
@@ -188,6 +214,7 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
           _safetyAlerts = false;
           _isRequesting = false;
         });
+        await _updateFirebasePermissions();
         _showError('Error requesting notification permission');
       }
     }
@@ -198,6 +225,7 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
 
     if (!value) {
       setState(() => _rescueMesh = false);
+      await _updateFirebasePermissions();
       return;
     }
 
@@ -234,6 +262,9 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
           _isRequesting = false;
         });
 
+        // Update Firebase after permission change
+        await _updateFirebasePermissions();
+
         if (!status.isGranted) {
           _handlePermissionDenied(
               status, 'Bluetooth', 'Bluetooth permission is needed for Rescue Mesh');
@@ -245,6 +276,7 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
           _rescueMesh = false;
           _isRequesting = false;
         });
+        await _updateFirebasePermissions();
         _showError('Error requesting bluetooth permission');
       }
     }
@@ -353,7 +385,8 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
       await _requestLocationPermission(true);
       await Future.delayed(const Duration(milliseconds: 300));
 
-      await _requestSensorPermission(true);
+      // Impact detection - just enable the feature (no permission needed)
+      await _toggleImpactDetection(true);
       await Future.delayed(const Duration(milliseconds: 300));
 
       await _requestNotificationPermission(true);
@@ -361,14 +394,13 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
 
       await _requestBluetoothPermission(true);
 
+      // Final Firebase update after all permissions
+      await _updateFirebasePermissions();
+
       if (mounted && _emergencyLocation && _impactDetection && _safetyAlerts) {
-<<<<<<< HEAD
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => EmergencyDashboardScreen()),
         );
-=======
-        Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     } finally {
       if (mounted) {
@@ -485,7 +517,8 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
                       title: 'Impact Detection',
                       description: 'To detect falls or accidents',
                       value: _impactDetection,
-                      onChanged: _requestSensorPermission,
+                      onChanged: _toggleImpactDetection,
+                      isFeatureToggle: true, // This is just a feature toggle
                     ),
                     const SizedBox(height: 16),
                     _buildPermissionCard(
@@ -540,15 +573,11 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () {
-<<<<<<< HEAD
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
                             builder: (context) => EmergencyDashboardScreen(),
                           ),
                         );
-=======
-                        Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: const Color(0xFF6B7280),
@@ -609,6 +638,7 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
     required String description,
     required bool value,
     required ValueChanged<bool> onChanged,
+    bool isFeatureToggle = false, // New parameter to indicate feature toggles
   }) {
     final iconColor =
         value ? const Color(0xFF06D6A0) : const Color(0xFF9CA3AF);
@@ -667,7 +697,9 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
             scale: 0.85,
             child: Switch(
               value: value,
-              onChanged: _isRequesting ? null : onChanged,
+              onChanged: isFeatureToggle 
+                  ? onChanged // Feature toggles work even when requesting
+                  : (_isRequesting ? null : onChanged), // Permissions disabled when requesting
               activeColor: const Color(0xFF06D6A0),
               activeTrackColor: const Color(0xFF06D6A0).withOpacity(0.5),
               inactiveThumbColor: Colors.white,

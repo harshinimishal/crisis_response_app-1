@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-
-
 class CPRGuideScreen extends StatefulWidget {
   const CPRGuideScreen({Key? key}) : super(key: key);
 

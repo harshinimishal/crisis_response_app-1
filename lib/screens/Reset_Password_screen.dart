@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'auth_service.dart';
 import 'success_screen.dart';
 import 'Login_screen.dart';
-=======
-import '../routes/app_routes.dart';
-import 'auth_service.dart';
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({Key? key}) : super(key: key);
 
@@ -96,14 +91,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ),
     );
 
-<<<<<<< HEAD
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()), // or a success screen
     );
-=======
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   } else {
     setState(() => _errorMessage = result['message']);
     ScaffoldMessenger.of(context).showSnackBar(

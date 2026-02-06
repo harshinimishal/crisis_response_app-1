@@ -1,6 +1,6 @@
-<<<<<<< HEAD
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,15 +24,6 @@ class SOSTriggeredScreen extends StatefulWidget {
     required this.emergencyContacts,
     this.additionalData,
   }) : super(key: key);
-=======
-import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:math' as math;
-import '../routes/app_routes.dart';
-
-class SOSTriggeredScreen extends StatefulWidget {
-  const SOSTriggeredScreen({Key? key}) : super(key: key);
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   State<SOSTriggeredScreen> createState() => _SOSTriggeredScreenState();
@@ -40,12 +31,13 @@ class SOSTriggeredScreen extends StatefulWidget {
 
 class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     with TickerProviderStateMixin {
-<<<<<<< HEAD
   // Animation controllers
   late final AnimationController _progressController;
   late final AnimationController _pulseController;
   late final AnimationController _glowController;
   late final AnimationController _rippleController;
+  late final AnimationController _fadeController;
+  late final AnimationController _scaleController;
 
   // Services
   final EmergencyService _emergencyService = EmergencyService();
@@ -61,7 +53,6 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   bool _isInternetActive = false;
   bool _isSMSActive = true;
   bool _isBLEActive = false;
-  bool _isCallActive = false;
 
   // Location
   String _locationText = 'Acquiring location...';
@@ -70,7 +61,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
 
   // Battery
   int _batteryLevel = 100;
-  
+
   // Delivery status
   Map<String, bool> _deliveryStatus = {
     'fcm': false,
@@ -89,26 +80,11 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   // Session
   bool _emergencyCreated = false;
   String? _sessionId;
-=======
-  late AnimationController _progressController;
-  late AnimationController _pulseController;
-  int countdown = 8;
-  late Timer _countdownTimer;
-
-  final List<Map<String, dynamic>> contacts = [
-    {'name': 'Dad', 'image': Icons.people},
-    {'name': 'Dr. Sarah', 'image': Icons.medical_services},
-    {'name': 'Marcus', 'image': Icons.person},
-  ];
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
-
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    
     _initializeAnimations();
     _initializeState();
     _startCountdown();
@@ -116,8 +92,6 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   }
 
   void _initializeAnimations() {
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     _progressController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -125,23 +99,33 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-<<<<<<< HEAD
     _glowController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
 
     _rippleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 2500),
     )..repeat();
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+      value: 1.0,
+    );
+
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+      value: 1.0,
+    );
   }
 
   Future<void> _initializeState() async {
-    // Check connectivity
     final connectivity = Connectivity();
     final initial = await connectivity.checkConnectivity();
     if (mounted) {
@@ -153,17 +137,11 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       setState(() => _isInternetActive = _hasInternet(results));
     });
 
-    // Get location
     _startLocationTracking();
-
-    // Monitor battery
     _startBatteryMonitoring();
 
-    // Update status periodically
     _statusUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     });
   }
 
@@ -180,8 +158,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
         setState(() {
           _currentLocation = position;
           _locationAccuracy = position.accuracy;
-          _locationText = 'LAT ${position.latitude.toStringAsFixed(5)}, '
-              'LNG ${position.longitude.toStringAsFixed(5)}';
+          _locationText = '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
         });
       }
     }, onError: (error) {
@@ -190,14 +167,12 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       }
     });
 
-    // Try to get initial location
     Geolocator.getLastKnownPosition().then((position) {
       if (position != null && mounted) {
         setState(() {
           _currentLocation = position;
           _locationAccuracy = position.accuracy;
-          _locationText = 'LAT ${position.latitude.toStringAsFixed(5)}, '
-              'LNG ${position.longitude.toStringAsFixed(5)}';
+          _locationText = '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
         });
       }
     });
@@ -221,52 +196,27 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
 
       if (countdown > 0) {
         setState(() => countdown--);
-        
-        // Vibrate on each second
         if (countdown <= 3) {
           Vibration.vibrate(duration: 100);
         }
       } else {
         timer.cancel();
         _triggerEmergency();
-=======
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (countdown > 0) {
-        setState(() {
-          countdown--;
-        });
-      } else {
-        timer.cancel();
-        // Navigate to accident detected screen after countdown
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            Navigator.pushReplacementNamed(
-              context,
-              AppRoutes.accidentDetected,
-            );
-          }
-        });
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     });
   }
 
-<<<<<<< HEAD
   void _startVibration() {
-    // Initial strong vibration pattern
     Vibration.vibrate(pattern: [0, 500, 200, 500], intensities: [0, 255, 0, 255]);
   }
 
   Future<void> _triggerEmergency() async {
     if (_emergencyCreated) return;
-    
-    setState(() => _emergencyCreated = true);
 
-    // Final strong vibration
+    setState(() => _emergencyCreated = true);
     Vibration.vibrate(duration: 1000, amplitude: 255);
 
     try {
-      // Create emergency session with all collected data
       _sessionId = await _emergencyService.createEmergencySession(
         userId: widget.userId,
         triggerType: widget.triggerType,
@@ -281,10 +231,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
         },
       );
 
-      // Listen to session updates
       _listenToSessionUpdates();
-
-      // Show delivery status updates
       _checkDeliveryStatus();
     } catch (e) {
       debugPrint('❌ Error triggering emergency: $e');
@@ -293,10 +240,8 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
 
     if (!mounted) return;
 
-    // Wait briefly to show status
     await Future.delayed(const Duration(milliseconds: 800));
 
-    // Navigate to accident detected screen
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -326,7 +271,6 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       if (data == null) return;
 
       setState(() {
-        // Update delivery status
         final channels = data['deliveryChannels'] as Map<String, dynamic>?;
         if (channels != null) {
           _deliveryStatus['fcm'] = channels['fcm']?['success'] ?? false;
@@ -335,11 +279,9 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
           _deliveryStatus['email'] = channels['email']?['success'] ?? false;
         }
 
-        // Update notified contacts count
         final notified = data['contactsNotified'] as List?;
         _notifiedContacts = notified?.length ?? 0;
 
-        // Update connectivity indicators
         final connectivity = data['connectivityStatus'] as Map<String, dynamic>?;
         if (connectivity != null) {
           _isInternetActive = connectivity['internet'] ?? false;
@@ -351,10 +293,9 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   }
 
   Future<void> _checkDeliveryStatus() async {
-    // Periodically check delivery status for visual feedback
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _isSMSActive = true);
-    
+
     await Future.delayed(const Duration(milliseconds: 1000));
     if (mounted && _isInternetActive) {
       setState(() => _deliveryStatus['fcm'] = true);
@@ -363,8 +304,6 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
 
   Future<void> _cancelEmergency() async {
     _countdownTimer?.cancel();
-
-    // Haptic feedback
     HapticFeedback.mediumImpact();
 
     if (_emergencyCreated && _sessionId != null) {
@@ -374,7 +313,6 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     }
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
     if (mounted) Navigator.pop(context);
   }
 
@@ -397,216 +335,885 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     _pulseController.dispose();
     _glowController.dispose();
     _rippleController.dispose();
+    _fadeController.dispose();
+    _scaleController.dispose();
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     Vibration.cancel();
-    
-=======
-  @override
-  void dispose() {
-    _progressController.dispose();
-    _pulseController.dispose();
-    _countdownTimer.cancel();
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0A),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 20),
-              _buildMapSection(),
-              const SizedBox(height: 20),
-              _buildDeviceStatus(),
-              const SizedBox(height: 24),
-              _buildConnectionStatus(),
-              const SizedBox(height: 32),
-              Expanded(child: _buildSOSButton()),
-              const SizedBox(height: 24),
-              _buildCountdownText(),
-              const SizedBox(height: 24),
-              _buildDeliveryStatus(),
-              const SizedBox(height: 24),
-              _buildContactsSection(),
-              const SizedBox(height: 24),
-              _buildCancelButton(),
-              const SizedBox(height: 20),
-            ],
-          ),
-=======
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 20),
-            _buildMapSection(),
-            const SizedBox(height: 30),
-            _buildConnectionStatus(),
-            const SizedBox(height: 40),
-            Expanded(
-              child: _buildSOSButton(),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF0D0D0D),
+                const Color(0xFF1A0A0A),
+                const Color(0xFF0D0D0D),
+              ],
             ),
-            const SizedBox(height: 30),
-            _buildCountdownText(),
-            const SizedBox(height: 20),
-            _buildContactsSection(),
-            const SizedBox(height: 30),
-            _buildCancelButton(),
-            const SizedBox(height: 20),
-          ],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-<<<<<<< HEAD
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A1A1A).withOpacity(0.5),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          child: SafeArea(
+            child: Stack(
               children: [
-                Row(
-                  children: const [
-                    Icon(Icons.emergency, color: Color(0xFFFF5252), size: 28),
-                    SizedBox(width: 12),
-                    Flexible(
-                      child: Text(
-                        'Emergency SOS',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
+                // Animated background effects
+                _buildBackgroundEffects(),
+                
+                // Main content
+                SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        _buildModernHeader(),
+                        const SizedBox(height: 32),
+                        _buildMainSOSSection(),
+                        const SizedBox(height: 32),
+                        _buildInfoCards(),
+                        const SizedBox(height: 24),
+                        _buildLocationCard(),
+                        const SizedBox(height: 24),
+                        _buildConnectionGrid(),
+                        if (_emergencyCreated) ...[
+                          const SizedBox(height: 24),
+                          _buildDeliveryProgress(),
+                        ],
+                        const SizedBox(height: 24),
+                        _buildEmergencyContacts(),
+                        const SizedBox(height: 32),
+                        _buildCancelButton(),
+                        const SizedBox(height: 32),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF5252).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFF5252), width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _getTriggerIcon(),
-                        color: const Color(0xFFFF5252),
-                        size: 14,
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _getTriggerText(),
-                          style: const TextStyle(
-                            color: Color(0xFFFF8A8A),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            width: 56,
-            height: 56,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackgroundEffects() {
+    return AnimatedBuilder(
+      animation: _rippleController,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            for (int i = 0; i < 3; i++)
+              Positioned(
+                top: -100 + (i * 200),
+                left: -100 + (_rippleController.value * 50),
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFFFF5252).withOpacity(0.03),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildModernHeader() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.08),
+                Colors.white.withOpacity(0.03),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFFF5252),
+                      const Color(0xFFFF3030),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF5252).withOpacity(0.4),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.emergency,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Emergency SOS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF5252).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFFF5252).withOpacity(0.5),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getTriggerIcon(),
+                            color: const Color(0xFFFF8A8A),
+                            size: 12,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _getTriggerText(),
+                            style: const TextStyle(
+                              color: Color(0xFFFF8A8A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainSOSSection() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _progressController,
+        _pulseController,
+        _glowController,
+      ]),
+      builder: (context, child) {
+        final pulseValue = math.sin(_pulseController.value * 2 * math.pi);
+        final glowIntensity = _glowController.value;
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer ripple effects
+            for (int i = 0; i < 4; i++)
+              Container(
+                width: 320 + (i * 40) + (pulseValue * 20),
+                height: 320 + (i * 40) + (pulseValue * 20),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFFF5252).withOpacity(
+                      (0.15 - i * 0.03) * (1 - _pulseController.value),
+                    ),
+                    width: 2,
+                  ),
+                ),
+              ),
+
+            // Main SOS button with progress
+            SizedBox(
+              width: 280,
+              height: 280,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Progress ring
+                  SizedBox(
+                    width: 280,
+                    height: 280,
+                    child: CircularProgressIndicator(
+                      value: _progressController.value,
+                      strokeWidth: 6,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color.lerp(
+                          const Color(0xFFFF8A8A),
+                          const Color(0xFFFF3030),
+                          glowIntensity,
+                        )!,
+                      ),
+                    ),
+                  ),
+
+                  // Inner circle with glassmorphism
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(130),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        width: 240,
+                        height: 240,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              Color.lerp(
+                                const Color(0xFFFF6B6B),
+                                const Color(0xFFFF4444),
+                                glowIntensity,
+                              )!,
+                              const Color(0xFFFF2020),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF5252).withOpacity(
+                                0.5 + (glowIntensity * 0.3),
+                              ),
+                              blurRadius: 40 + (glowIntensity * 20),
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'SOS',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 72,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 8,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 15,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              countdown > 0 ? '$countdown' : '0',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 48,
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _emergencyCreated ? 'SENDING' : 'TRIGGERED',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildGlassCard(
+            icon: Icons.battery_charging_full,
+            value: '$_batteryLevel%',
+            label: 'Battery',
+            color: _batteryLevel > 20
+                ? const Color(0xFF4CAF50)
+                : const Color(0xFFFF5252),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildGlassCard(
+            icon: Icons.people_outline,
+            value: '$_notifiedContacts/${widget.emergencyContacts.length}',
+            label: 'Notified',
+            color: _notifiedContacts > 0
+                ? const Color(0xFF4CAF50)
+                : const Color(0xFF9E9E9E),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildGlassCard(
+            icon: Icons.location_on_outlined,
+            value: _locationAccuracy > 0 ? '±${_locationAccuracy.toInt()}m' : '--',
+            label: 'Accuracy',
+            color: _getAccuracyColor(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGlassCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.1),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: color.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationCard() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.1),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5252).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.my_location,
+                      color: Color(0xFFFF5252),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Live Location',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.place,
+                      color: Color(0xFFFF8A8A),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _locationText,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionGrid() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildConnectionCard(
+            'Internet',
+            _isInternetActive,
+            Icons.wifi,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildConnectionCard(
+            'SMS',
+            _isSMSActive,
+            Icons.message,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildConnectionCard(
+            'Bluetooth',
+            _isBLEActive,
+            Icons.bluetooth,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectionCard(String label, bool isActive, IconData icon) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                isActive
+                    ? const Color(0xFF4CAF50).withOpacity(0.15)
+                    : Colors.white.withOpacity(0.05),
+                isActive
+                    ? const Color(0xFF4CAF50).withOpacity(0.05)
+                    : Colors.white.withOpacity(0.02),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isActive
+                  ? const Color(0xFF4CAF50).withOpacity(0.5)
+                  : Colors.white.withOpacity(0.1),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: isActive ? const Color(0xFF4CAF50) : Colors.white.withOpacity(0.3),
+                size: 24,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? const Color(0xFF4CAF50) : Colors.white.withOpacity(0.5),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isActive ? const Color(0xFF4CAF50) : Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeliveryProgress() {
+    final deliveryMethods = [
+      {'label': 'FCM', 'status': _deliveryStatus['fcm']!, 'icon': Icons.notifications},
+      {'label': 'SMS', 'status': _deliveryStatus['sms']!, 'icon': Icons.sms},
+      {'label': 'Email', 'status': _deliveryStatus['email']!, 'icon': Icons.email},
+      {'label': 'BLE', 'status': _deliveryStatus['ble']!, 'icon': Icons.bluetooth},
+    ];
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.08),
+                Colors.white.withOpacity(0.04),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.send,
+                    color: Color(0xFF4CAF50),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Delivery Status',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: deliveryMethods.map((method) {
+                  return Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: method['status'] as bool
+                              ? const Color(0xFF4CAF50).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: method['status'] as bool
+                                ? const Color(0xFF4CAF50)
+                                : Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                        child: Icon(
+                          method['status'] as bool ? Icons.check_circle : Icons.pending,
+                          color: method['status'] as bool
+                              ? const Color(0xFF4CAF50)
+                              : Colors.white.withOpacity(0.3),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        method['label'] as String,
+                        style: TextStyle(
+                          color: method['status'] as bool
+                              ? const Color(0xFF4CAF50)
+                              : Colors.white.withOpacity(0.5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmergencyContacts() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Text(
+            'Emergency Contacts',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: widget.emergencyContacts.length,
+            itemBuilder: (context, index) {
+              final contact = widget.emergencyContacts[index];
+              final isNotified = _emergencyCreated && index < _notifiedContacts;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      width: 90,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withOpacity(0.1),
+                            Colors.white.withOpacity(0.05),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isNotified
+                              ? const Color(0xFF4CAF50).withOpacity(0.5)
+                              : Colors.white.withOpacity(0.1),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isNotified
+                                      ? const Color(0xFF4CAF50).withOpacity(0.2)
+                                      : Colors.white.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _getContactIcon(contact['role'] ?? ''),
+                                  color: isNotified
+                                      ? const Color(0xFF4CAF50)
+                                      : Colors.white.withOpacity(0.6),
+                                  size: 20,
+                                ),
+                              ),
+                              if (isNotified)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF4CAF50),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 10,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            contact['name'] ?? 'Contact',
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCancelButton() {
+    return GestureDetector(
+      onTap: _cancelEmergency,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFFFF5252).withOpacity(0.3),
-                  const Color(0xFFFF5252).withOpacity(0.1),
+                  Colors.white.withOpacity(0.15),
+                  Colors.white.withOpacity(0.08),
                 ],
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFF5252), width: 2),
-=======
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Emergency SOS',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1.5,
               ),
-              SizedBox(height: 4),
-              Text(
-                'Manual Trigger Active',
-                style: TextStyle(
-                  color: Color(0xFF808080),
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A2A),
-              borderRadius: BorderRadius.circular(12),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
-            child: const Icon(
-              Icons.location_on,
-              color: Color(0xFFFF5252),
-<<<<<<< HEAD
-              size: 30,
-=======
-              size: 28,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.close_rounded, color: Colors.white, size: 24),
+                SizedBox(width: 12),
+                Text(
+                  'CANCEL SOS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-<<<<<<< HEAD
   IconData _getTriggerIcon() {
     switch (widget.triggerType) {
       case 'crash_detected':
@@ -614,7 +1221,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       case 'fall_detected':
         return Icons.accessibility_new;
       case 'panic_button':
-        return Icons.warning;
+        return Icons.warning_amber_rounded;
       default:
         return Icons.touch_app;
     }
@@ -629,1045 +1236,28 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       case 'panic_button':
         return 'Panic Button';
       default:
-        return 'Manual Trigger Active';
+        return 'Manual Trigger';
     }
   }
 
-  Widget _buildMapSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      height: 180,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF2A2A2A), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF5252).withOpacity(0.1),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Stack(
-          children: [
-            // Gradient background
-=======
-  Widget _buildMapSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      height: 180,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-<<<<<<< HEAD
-                    Color(0xFF2A4A5A),
-                    Color(0xFF3A6A7A),
-                    Color(0xFF4A8A9A),
-=======
-                    Color(0xFF3A7A8A),
-                    Color(0xFF5A9AAA),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                  ],
-                ),
-              ),
-            ),
-<<<<<<< HEAD
-            // Grid overlay
-            CustomPaint(
-              painter: GridPainter(),
-              size: Size.infinite,
-            ),
-            // Pulsing marker
-            Center(
-              child: AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Pulse rings
-                      for (int i = 0; i < 3; i++)
-                        Container(
-                          width: 60 + (i * 20) + (_pulseController.value * 30),
-                          height: 60 + (i * 20) + (_pulseController.value * 30),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFFF5252).withOpacity(
-                                (1 - _pulseController.value) * (1 - i * 0.3),
-                              ),
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      // Main marker
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF5252),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFF5252).withOpacity(0.6),
-                              blurRadius: 15,
-                              spreadRadius: 3,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            // Location label
-=======
-            Center(
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF5252),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-            ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-            Positioned(
-              bottom: 16,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-<<<<<<< HEAD
-                    color: const Color(0xFF1A1A1A).withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: const Color(0xFF3A3A3A), width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.5),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.gps_fixed, color: Color(0xFFFF5252), size: 14),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _locationText.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (_locationAccuracy > 0) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _getAccuracyColor(),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '±${_locationAccuracy.toStringAsFixed(0)}m',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-=======
-                    color: const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Text(
-                    'CURRENT LOCATION: MARKET ST, SF',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-<<<<<<< HEAD
   Color _getAccuracyColor() {
-    if (_locationAccuracy <= 10) return const Color(0xFF40916C);
-    if (_locationAccuracy <= 50) return const Color(0xFFFFAA00);
+    if (_locationAccuracy <= 10) return const Color(0xFF4CAF50);
+    if (_locationAccuracy <= 50) return const Color(0xFFFFA726);
     return const Color(0xFFFF5252);
   }
 
-  Widget _buildDeviceStatus() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildStatusIndicator(
-              Icons.battery_std,
-              '$_batteryLevel%',
-              _batteryLevel > 20 ? const Color(0xFF40916C) : const Color(0xFFFF5252),
-            ),
-            Container(width: 1, height: 24, color: const Color(0xFF2A2A2A)),
-            _buildStatusIndicator(
-              Icons.access_time,
-              '${countdown}s',
-              const Color(0xFFFFAA00),
-            ),
-            Container(width: 1, height: 24, color: const Color(0xFF2A2A2A)),
-            _buildStatusIndicator(
-              Icons.people,
-              '$_notifiedContacts/${widget.emergencyContacts.length}',
-              _notifiedContacts > 0 ? const Color(0xFF40916C) : const Color(0xFF808080),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusIndicator(IconData icon, String text, Color color) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConnectionStatus() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatusCard(
-              'INTERNET',
-              _isInternetActive ? 'Connected' : 'Offline',
-              Icons.wifi,
-              _isInternetActive,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatusCard(
-              'SMS',
-              _isSMSActive ? 'Ready' : 'Unavailable',
-              Icons.sms,
-              _isSMSActive,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatusCard(
-              'BLE',
-              _isBLEActive ? 'Active' : 'Searching',
-              Icons.bluetooth,
-              _isBLEActive,
-            ),
-          ),
-=======
-  Widget _buildConnectionStatus() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(child: _buildStatusCard('INTERNET', 'Active', Icons.wifi, true)),
-          const SizedBox(width: 12),
-          Expanded(child: _buildStatusCard('SMS', 'Backup', Icons.sms, true)),
-          const SizedBox(width: 12),
-          Expanded(child: _buildStatusCard('BLE', 'Searching...', Icons.bluetooth, false)),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusCard(String title, String status, IconData icon, bool isActive) {
-    return Container(
-<<<<<<< HEAD
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A1A1A),
-            const Color(0xFF0F0F0F),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isActive ? const Color(0xFF40916C) : const Color(0xFF2A2A2A),
-          width: 2,
-        ),
-        boxShadow: isActive
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF40916C).withOpacity(0.2),
-                  blurRadius: 10,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? const Color(0xFF40916C).withOpacity(0.2)
-                  : const Color(0xFF2A2A2A).withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: isActive ? const Color(0xFF40916C) : const Color(0xFF606060),
-              size: 22,
-            ),
-=======
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF40916C) : const Color(0xFF808080),
-            size: 24,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF808080),
-<<<<<<< HEAD
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-=======
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            status,
-<<<<<<< HEAD
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF40916C) : const Color(0xFF808080),
-              fontSize: 11,
-=======
-            style: TextStyle(
-              color: isActive ? Colors.white : const Color(0xFF808080),
-              fontSize: 13,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSOSButton() {
-    return Center(
-      child: AnimatedBuilder(
-<<<<<<< HEAD
-        animation: Listenable.merge([
-          _progressController,
-          _pulseController,
-          _glowController,
-        ]),
-        builder: (context, child) {
-          final pulseValue = math.sin(_pulseController.value * 2 * math.pi);
-          final glowValue = _glowController.value;
-          
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              // Outer glow rings
-              for (int i = 3; i > 0; i--)
-                Container(
-                  width: 300 + (i * 25) + (pulseValue * 15),
-                  height: 300 + (i * 25) + (pulseValue * 15),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFFFF5252).withOpacity(0.08 / i),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              // Progress ring background
-              SizedBox(
-                width: 260,
-                height: 260,
-                child: CircularProgressIndicator(
-                  value: 1.0,
-                  strokeWidth: 8,
-                  backgroundColor: const Color(0xFF2A1A1A),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2A1A1A)),
-                ),
-=======
-        animation: Listenable.merge([_progressController, _pulseController]),
-        builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              // Pulsing outer glow
-              Container(
-                width: 300 + (math.sin(_pulseController.value * 2 * math.pi) * 15),
-                height: 300 + (math.sin(_pulseController.value * 2 * math.pi) * 15),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFFF6B6B).withOpacity(0.3),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-              ),
-              // Progress ring
-              SizedBox(
-                width: 260,
-                height: 260,
-                child: CircularProgressIndicator(
-                  value: _progressController.value,
-                  strokeWidth: 8,
-<<<<<<< HEAD
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Color.lerp(
-                      const Color(0xFFFF8A8A),
-                      const Color(0xFFFF3030),
-                      glowValue,
-                    )!,
-                  ),
-                ),
-              ),
-              // Dark circle
-              Container(
-                width: 235,
-                height: 235,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF1A0A0A),
-=======
-                  backgroundColor: const Color(0xFF2A1A1A),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF5252)),
-                ),
-              ),
-              // Dark background
-              Container(
-                width: 240,
-                height: 240,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF2A1A1A),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                ),
-              ),
-              // Main SOS button
-              Container(
-                width: 220,
-                height: 220,
-<<<<<<< HEAD
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Color.lerp(
-                        const Color(0xFFFF8A8A),
-                        const Color(0xFFFF5252),
-                        glowValue,
-                      )!,
-                      const Color(0xFFFF3030),
-=======
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Color(0xFFFF7B7B),
-                      Color(0xFFFF5252),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-<<<<<<< HEAD
-                      color: const Color(0xFFFF5252).withOpacity(0.4 + (glowValue * 0.3)),
-                      blurRadius: 35 + (glowValue * 15),
-                      spreadRadius: 4 + (glowValue * 4),
-=======
-                      color: Color(0xFFFF5252),
-                      blurRadius: 30,
-                      spreadRadius: 3,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-<<<<<<< HEAD
-                    children: [
-=======
-                    children: const [
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                      Text(
-                        'SOS',
-                        style: TextStyle(
-                          color: Colors.white,
-<<<<<<< HEAD
-                          fontSize: 65,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 6,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          _emergencyCreated ? 'SENDING' : 'TRIGGERED',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2,
-                          ),
-=======
-                          fontSize: 60,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 6,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'TRIGGERED',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 3,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildCountdownText() {
-    return Column(
-      children: [
-<<<<<<< HEAD
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.timer, color: Color(0xFFFF5252), size: 26),
-            const SizedBox(width: 10),
-            Text(
-              'SENDING IN 0${countdown}s',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 32),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A).withOpacity(0.6),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
-          ),
-          child: const Text(
-            'Emergency services and contacts will be\nnotified with your live location',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFFB0B0B0),
-              fontSize: 13,
-              height: 1.4,
-            ),
-=======
-        Text(
-          'SENDING IN 0${countdown}s',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            fontStyle: FontStyle.italic,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Emergency services and your contacts will\nbe notified automatically.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF808080),
-            fontSize: 14,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-          ),
-        ),
-      ],
-    );
-  }
-
-<<<<<<< HEAD
-  Widget _buildDeliveryStatus() {
-    if (!_emergencyCreated) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'DELIVERY STATUS',
-            style: TextStyle(
-              color: Color(0xFF808080),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildDeliveryIndicator('FCM', _deliveryStatus['fcm']!),
-              const SizedBox(width: 8),
-              _buildDeliveryIndicator('SMS', _deliveryStatus['sms']!),
-              const SizedBox(width: 8),
-              _buildDeliveryIndicator('Email', _deliveryStatus['email']!),
-              const SizedBox(width: 8),
-              _buildDeliveryIndicator('BLE', _deliveryStatus['ble']!),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeliveryIndicator(String label, bool success) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: success 
-              ? const Color(0xFF40916C).withOpacity(0.2)
-              : const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: success ? const Color(0xFF40916C) : const Color(0xFF3A3A3A),
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              success ? Icons.check_circle : Icons.pending,
-              color: success ? const Color(0xFF40916C) : const Color(0xFF606060),
-              size: 16,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: success ? const Color(0xFF40916C) : const Color(0xFF606060),
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-  Widget _buildContactsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-<<<<<<< HEAD
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: const [
-              Icon(Icons.people, color: Color(0xFF808080), size: 16),
-              SizedBox(width: 8),
-              Text(
-                'CONTACTS TO NOTIFY',
-                style: TextStyle(
-                  color: Color(0xFF808080),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: widget.emergencyContacts
-                .map((contact) => _buildContactAvatar(contact))
-                .toList(),
-=======
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'CONTACTS TO NOTIFY',
-            style: TextStyle(
-              color: Color(0xFF808080),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              ...contacts.map((contact) => _buildContactAvatar(
-                    contact['name'],
-                    contact['image'],
-                  )),
-              _buildAddContactButton(),
-            ],
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-          ),
-        ),
-      ],
-    );
-  }
-
-<<<<<<< HEAD
-  Widget _buildContactAvatar(Map<String, String> contact) {
-    final isNotified = _emergencyCreated;
-    
-    return Padding(
-      padding: const EdgeInsets.only(right: 14),
-=======
-  Widget _buildContactAvatar(String name, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 20),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-      child: Column(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-<<<<<<< HEAD
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF2A2A2A),
-                  const Color(0xFF1A1A1A),
-                ],
-              ),
-              border: Border.all(
-                color: isNotified ? const Color(0xFF40916C) : const Color(0xFFFF5252),
-                width: 2.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (isNotified ? const Color(0xFF40916C) : const Color(0xFFFF5252))
-                      .withOpacity(0.3),
-                  blurRadius: 8,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Icon(
-                    _getContactIcon(contact['role'] ?? ''),
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                if (isNotified)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF40916C),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 12,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 70,
-            child: Text(
-              contact['name'] ?? 'Contact',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-=======
-              color: const Color(0xFF2A2A2A),
-              border: Border.all(color: const Color(0xFFFF5252), width: 3),
-            ),
-            child: Icon(icon, color: Colors.white, size: 32),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-<<<<<<< HEAD
   IconData _getContactIcon(String role) {
-    final lowerRole = role.toLowerCase();
-    if (lowerRole.contains('doctor') || lowerRole.contains('physician')) {
-      return Icons.medical_services;
-    } else if (lowerRole.contains('spouse') || lowerRole.contains('partner')) {
-      return Icons.favorite;
-    } else if (lowerRole.contains('parent') || lowerRole.contains('family')) {
-      return Icons.family_restroom;
-    }
-    return Icons.person;
-=======
-  Widget _buildAddContactButton() {
-    return Column(
-      children: [
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFF2A2A2A),
-              width: 2,
-              style: BorderStyle.solid,
-            ),
-          ),
-          child: const Icon(
-            Icons.add,
-            color: Color(0xFF808080),
-            size: 32,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          '',
-          style: TextStyle(color: Colors.transparent, fontSize: 14),
-        ),
-      ],
-    );
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-  }
-
-  Widget _buildCancelButton() {
-    return GestureDetector(
-<<<<<<< HEAD
-      onTap: _cancelEmergency,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF2A2A2A),
-              const Color(0xFF1A1A1A),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF3A3A3A), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              spreadRadius: 1,
-            ),
-          ],
-=======
-      onTap: () {
-        Navigator.pop(context);
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(15),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.close, color: Colors.white, size: 24),
-<<<<<<< HEAD
-            SizedBox(width: 10),
-=======
-            SizedBox(width: 12),
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-            Text(
-              'CANCEL SOS',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-<<<<<<< HEAD
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-=======
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-<<<<<<< HEAD
-}
-
-// Grid painter for map background
-class GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
-      ..strokeWidth = 1;
-
-    const spacing = 20.0;
-
-    for (double i = 0; i < size.width; i += spacing) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-
-    for (double i = 0; i < size.height; i += spacing) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    switch (role.toLowerCase()) {
+      case 'emergency':
+        return Icons.local_hospital;
+      case 'family':
+        return Icons.people;
+      case 'friend':
+        return Icons.person;
+      case 'police':
+        return Icons.security;
+      default:
+        return Icons.person_outline;
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-=======
->>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 }
