@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_gate.dart';
-
+import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -15,7 +16,11 @@ void main() async {
     runApp(ErrorApp(error: e.toString()));
     return;
   }
-
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+  await Hive.initFlutter();
+await Hive.openBox('emergency_profile_cache');
   runApp(const MyApp());
 }
 
