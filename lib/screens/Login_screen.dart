@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'auth_service.dart';
 import 'forget_password_screen.dart';
 import 'signup_screen.dart';
 import 'emergency_dashboard_screen.dart';
+=======
+import '../routes/app_routes.dart';
+import 'auth_service.dart';
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -69,12 +74,16 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 
   // Navigate to Emergency Dashboard
+<<<<<<< HEAD
   Navigator.pushReplacement(
     context,
     MaterialPageRoute(
       builder: (context) => const EmergencyDashboardScreen(),
     ),
   );
+=======
+  Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 }
  else {
       setState(() {
@@ -258,12 +267,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
+<<<<<<< HEAD
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
                                     const RecoverAccessScreen(),
                               ),
+=======
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.forgetPassword,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                             );
                           },
                           child: const Text(
@@ -475,12 +490,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             onTap: _isLoading
                                 ? null
                                 : () {
+<<<<<<< HEAD
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             const SignUpScreen(),
                                       ),
+=======
+                                    Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.signup,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                                     );
                                   },
                             child: const Text(

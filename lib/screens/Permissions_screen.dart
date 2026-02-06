@@ -1,7 +1,13 @@
 import 'dart:async';
+<<<<<<< HEAD
 import 'emergency_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+=======
+import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../routes/app_routes.dart';
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 class SafetyPermissionsScreen extends StatefulWidget {
   const SafetyPermissionsScreen({Key? key}) : super(key: key);
@@ -356,9 +362,13 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
       await _requestBluetoothPermission(true);
 
       if (mounted && _emergencyLocation && _impactDetection && _safetyAlerts) {
+<<<<<<< HEAD
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => EmergencyDashboardScreen()),
         );
+=======
+        Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     } finally {
       if (mounted) {
@@ -530,11 +540,15 @@ class _SafetyPermissionsScreenState extends State<SafetyPermissionsScreen>
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () {
+<<<<<<< HEAD
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
                             builder: (context) => EmergencyDashboardScreen(),
                           ),
                         );
+=======
+                        Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: const Color(0xFF6B7280),

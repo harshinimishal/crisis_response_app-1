@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+<<<<<<< HEAD
 import 'permissions_screen.dart';
+=======
+import '../routes/app_routes.dart';
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 
 class AccountCreatedScreen extends StatefulWidget {
@@ -343,12 +347,16 @@ class _AccountCreatedScreenState extends State<AccountCreatedScreen>
                           ),
                           child: ElevatedButton(
                             onPressed: () {
+<<<<<<< HEAD
   Navigator.pushReplacement(
     context,
     MaterialPageRoute(
       builder: (context) => const SafetyPermissionsScreen(),
     ),
   );
+=======
+  Navigator.pushReplacementNamed(context, AppRoutes.permissions);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 },
 
                             style: ElevatedButton.styleFrom(

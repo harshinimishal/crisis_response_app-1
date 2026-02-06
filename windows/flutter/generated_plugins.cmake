@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+<<<<<<< HEAD
   battery_plus
   cloud_firestore
   connectivity_plus
@@ -14,6 +15,14 @@ list(APPEND FLUTTER_PLUGIN_LIST
   geolocator_windows
   permission_handler_windows
   share_plus
+=======
+  cloud_firestore
+  firebase_auth
+  firebase_core
+  flutter_blue_plus_winrt
+  geolocator_windows
+  permission_handler_windows
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   url_launcher_windows
 )
 

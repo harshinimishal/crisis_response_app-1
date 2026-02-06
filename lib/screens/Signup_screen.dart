@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+<<<<<<< HEAD
 import 'auth_service.dart';
 import 'login_screen.dart';
 import 'success_screen.dart';
+=======
+import '../routes/app_routes.dart';
+import 'auth_service.dart';
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
 
@@ -116,11 +121,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       // Navigate to login
       if (mounted) {
+<<<<<<< HEAD
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const AccountCreatedScreen(),
           ),
         );
+=======
+        Navigator.of(context).pushReplacementNamed(AppRoutes.success);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     } else {
       setState(() {
@@ -779,10 +788,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               recognizer: TapGestureRecognizer()
                                 ..onTap = () {
+<<<<<<< HEAD
                                   Navigator.of(context).pushReplacement(
                                     MaterialPageRoute(
                                       builder: (context) => const LoginScreen(),
                                     ),
+=======
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    AppRoutes.login,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                                   );
                                 },
                             ),

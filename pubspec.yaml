@@ -46,6 +46,7 @@ dependencies:
   flutter_local_notifications: ^17.2.1
   timezone: ^0.9.0
   telephony: ^0.2.0
+<<<<<<< HEAD
   connectivity_plus: ^7.0.0
   battery_plus: ^7.0.0
   shared_preferences: ^2.5.4
@@ -64,6 +65,8 @@ dependencies:
   crypto: ^3.0.7
   cached_network_image: ^3.4.1
   hive_flutter: ^1.1.0
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 dev_dependencies:
   flutter_test:

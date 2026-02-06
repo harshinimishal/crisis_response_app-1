@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -23,6 +24,15 @@ class SOSTriggeredScreen extends StatefulWidget {
     required this.emergencyContacts,
     this.additionalData,
   }) : super(key: key);
+=======
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math' as math;
+import '../routes/app_routes.dart';
+
+class SOSTriggeredScreen extends StatefulWidget {
+  const SOSTriggeredScreen({Key? key}) : super(key: key);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   State<SOSTriggeredScreen> createState() => _SOSTriggeredScreenState();
@@ -30,6 +40,7 @@ class SOSTriggeredScreen extends StatefulWidget {
 
 class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     with TickerProviderStateMixin {
+<<<<<<< HEAD
   // Animation controllers
   late final AnimationController _progressController;
   late final AnimationController _pulseController;
@@ -78,10 +89,23 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   // Session
   bool _emergencyCreated = false;
   String? _sessionId;
+=======
+  late AnimationController _progressController;
+  late AnimationController _pulseController;
+  int countdown = 8;
+  late Timer _countdownTimer;
+
+  final List<Map<String, dynamic>> contacts = [
+    {'name': 'Dad', 'image': Icons.people},
+    {'name': 'Dr. Sarah', 'image': Icons.medical_services},
+    {'name': 'Marcus', 'image': Icons.person},
+  ];
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
@@ -92,6 +116,8 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   }
 
   void _initializeAnimations() {
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     _progressController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
@@ -102,6 +128,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       duration: const Duration(milliseconds: 1000),
     )..repeat();
 
+<<<<<<< HEAD
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -202,10 +229,29 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       } else {
         timer.cancel();
         _triggerEmergency();
+=======
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (countdown > 0) {
+        setState(() {
+          countdown--;
+        });
+      } else {
+        timer.cancel();
+        // Navigate to accident detected screen after countdown
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.accidentDetected,
+            );
+          }
+        });
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       }
     });
   }
 
+<<<<<<< HEAD
   void _startVibration() {
     // Initial strong vibration pattern
     Vibration.vibrate(pattern: [0, 500, 200, 500], intensities: [0, 255, 0, 255]);
@@ -355,11 +401,19 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     Vibration.cancel();
     
+=======
+  @override
+  void dispose() {
+    _progressController.dispose();
+    _pulseController.dispose();
+    _countdownTimer.cancel();
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
@@ -387,12 +441,37 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               const SizedBox(height: 20),
             ],
           ),
+=======
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildMapSection(),
+            const SizedBox(height: 30),
+            _buildConnectionStatus(),
+            const SizedBox(height: 40),
+            Expanded(
+              child: _buildSOSButton(),
+            ),
+            const SizedBox(height: 30),
+            _buildCountdownText(),
+            const SizedBox(height: 20),
+            _buildContactsSection(),
+            const SizedBox(height: 30),
+            _buildCancelButton(),
+            const SizedBox(height: 20),
+          ],
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
+<<<<<<< HEAD
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
@@ -477,11 +556,49 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFFF5252), width: 2),
+=======
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Emergency SOS',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Manual Trigger Active',
+                style: TextStyle(
+                  color: Color(0xFF808080),
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A2A2A),
+              borderRadius: BorderRadius.circular(12),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
             child: const Icon(
               Icons.location_on,
               color: Color(0xFFFF5252),
+<<<<<<< HEAD
               size: 30,
+=======
+              size: 28,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
         ],
@@ -489,6 +606,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     );
   }
 
+<<<<<<< HEAD
   IconData _getTriggerIcon() {
     switch (widget.triggerType) {
       case 'crash_detected':
@@ -535,19 +653,39 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
         child: Stack(
           children: [
             // Gradient background
+=======
+  Widget _buildMapSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 180,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
+<<<<<<< HEAD
                     Color(0xFF2A4A5A),
                     Color(0xFF3A6A7A),
                     Color(0xFF4A8A9A),
+=======
+                    Color(0xFF3A7A8A),
+                    Color(0xFF5A9AAA),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   ],
                 ),
               ),
             ),
+<<<<<<< HEAD
             // Grid overlay
             CustomPaint(
               painter: GridPainter(),
@@ -599,6 +737,19 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               ),
             ),
             // Location label
+=======
+            Center(
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5252),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+              ),
+            ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             Positioned(
               bottom: 16,
               left: 0,
@@ -607,6 +758,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
+<<<<<<< HEAD
                     color: const Color(0xFF1A1A1A).withOpacity(0.95),
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: const Color(0xFF3A3A3A), width: 1),
@@ -653,6 +805,19 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                         ),
                       ],
                     ],
+=======
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: const Text(
+                    'CURRENT LOCATION: MARKET ST, SF',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   ),
                 ),
               ),
@@ -663,6 +828,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     );
   }
 
+<<<<<<< HEAD
   Color _getAccuracyColor() {
     if (_locationAccuracy <= 10) return const Color(0xFF40916C);
     if (_locationAccuracy <= 50) return const Color(0xFFFFAA00);
@@ -753,6 +919,18 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               _isBLEActive,
             ),
           ),
+=======
+  Widget _buildConnectionStatus() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(child: _buildStatusCard('INTERNET', 'Active', Icons.wifi, true)),
+          const SizedBox(width: 12),
+          Expanded(child: _buildStatusCard('SMS', 'Backup', Icons.sms, true)),
+          const SizedBox(width: 12),
+          Expanded(child: _buildStatusCard('BLE', 'Searching...', Icons.bluetooth, false)),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ],
       ),
     );
@@ -760,6 +938,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
 
   Widget _buildStatusCard(String title, String status, IconData icon, bool isActive) {
     return Container(
+<<<<<<< HEAD
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -800,24 +979,49 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               color: isActive ? const Color(0xFF40916C) : const Color(0xFF606060),
               size: 22,
             ),
+=======
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: const Color(0xFF2A2A2A), width: 1),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: isActive ? const Color(0xFF40916C) : const Color(0xFF808080),
+            size: 24,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
           const SizedBox(height: 8),
           Text(
             title,
             style: const TextStyle(
               color: Color(0xFF808080),
+<<<<<<< HEAD
               fontSize: 9,
               fontWeight: FontWeight.w700,
               letterSpacing: 1,
+=======
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
           const SizedBox(height: 4),
           Text(
             status,
+<<<<<<< HEAD
             textAlign: TextAlign.center,
             style: TextStyle(
               color: isActive ? const Color(0xFF40916C) : const Color(0xFF808080),
               fontSize: 11,
+=======
+            style: TextStyle(
+              color: isActive ? Colors.white : const Color(0xFF808080),
+              fontSize: 13,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -829,6 +1033,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   Widget _buildSOSButton() {
     return Center(
       child: AnimatedBuilder(
+<<<<<<< HEAD
         animation: Listenable.merge([
           _progressController,
           _pulseController,
@@ -866,6 +1071,26 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                   backgroundColor: const Color(0xFF2A1A1A),
                   valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2A1A1A)),
                 ),
+=======
+        animation: Listenable.merge([_progressController, _pulseController]),
+        builder: (context, child) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              // Pulsing outer glow
+              Container(
+                width: 300 + (math.sin(_pulseController.value * 2 * math.pi) * 15),
+                height: 300 + (math.sin(_pulseController.value * 2 * math.pi) * 15),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFFF6B6B).withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               ),
               // Progress ring
               SizedBox(
@@ -874,6 +1099,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                 child: CircularProgressIndicator(
                   value: _progressController.value,
                   strokeWidth: 8,
+<<<<<<< HEAD
                   backgroundColor: Colors.transparent,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     Color.lerp(
@@ -891,12 +1117,26 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: Color(0xFF1A0A0A),
+=======
+                  backgroundColor: const Color(0xFF2A1A1A),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF5252)),
+                ),
+              ),
+              // Dark background
+              Container(
+                width: 240,
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2A1A1A),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 ),
               ),
               // Main SOS button
               Container(
                 width: 220,
                 height: 220,
+<<<<<<< HEAD
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
@@ -907,24 +1147,43 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                         glowValue,
                       )!,
                       const Color(0xFFFF3030),
+=======
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Color(0xFFFF7B7B),
+                      Color(0xFFFF5252),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
+<<<<<<< HEAD
                       color: const Color(0xFFFF5252).withOpacity(0.4 + (glowValue * 0.3)),
                       blurRadius: 35 + (glowValue * 15),
                       spreadRadius: 4 + (glowValue * 4),
+=======
+                      color: Color(0xFFFF5252),
+                      blurRadius: 30,
+                      spreadRadius: 3,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                     ),
                   ],
                 ),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+<<<<<<< HEAD
                     children: [
+=======
+                    children: const [
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                       Text(
                         'SOS',
                         style: TextStyle(
                           color: Colors.white,
+<<<<<<< HEAD
                           fontSize: 65,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 6,
@@ -951,6 +1210,21 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                             fontWeight: FontWeight.w800,
                             letterSpacing: 2,
                           ),
+=======
+                          fontSize: 60,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 6,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'TRIGGERED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 3,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                         ),
                       ),
                     ],
@@ -967,6 +1241,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
   Widget _buildCountdownText() {
     return Column(
       children: [
+<<<<<<< HEAD
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1000,12 +1275,32 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               fontSize: 13,
               height: 1.4,
             ),
+=======
+        Text(
+          'SENDING IN 0${countdown}s',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            fontStyle: FontStyle.italic,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Emergency services and your contacts will\nbe notified automatically.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF808080),
+            fontSize: 14,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ),
       ],
     );
   }
 
+<<<<<<< HEAD
   Widget _buildDeliveryStatus() {
     if (!_emergencyCreated) return const SizedBox.shrink();
 
@@ -1075,10 +1370,13 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     );
   }
 
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   Widget _buildContactsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+<<<<<<< HEAD
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
@@ -1105,17 +1403,48 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
             children: widget.emergencyContacts
                 .map((contact) => _buildContactAvatar(contact))
                 .toList(),
+=======
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'CONTACTS TO NOTIFY',
+            style: TextStyle(
+              color: Color(0xFF808080),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              ...contacts.map((contact) => _buildContactAvatar(
+                    contact['name'],
+                    contact['image'],
+                  )),
+              _buildAddContactButton(),
+            ],
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ),
       ],
     );
   }
 
+<<<<<<< HEAD
   Widget _buildContactAvatar(Map<String, String> contact) {
     final isNotified = _emergencyCreated;
     
     return Padding(
       padding: const EdgeInsets.only(right: 14),
+=======
+  Widget _buildContactAvatar(String name, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 20),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       child: Column(
         children: [
           Container(
@@ -1123,6 +1452,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
             height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
+<<<<<<< HEAD
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -1186,6 +1516,20 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
+=======
+              color: const Color(0xFF2A2A2A),
+              border: Border.all(color: const Color(0xFFFF5252), width: 3),
+            ),
+            child: Icon(icon, color: Colors.white, size: 32),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
         ],
@@ -1193,6 +1537,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
     );
   }
 
+<<<<<<< HEAD
   IconData _getContactIcon(String role) {
     final lowerRole = role.toLowerCase();
     if (lowerRole.contains('doctor') || lowerRole.contains('physician')) {
@@ -1203,10 +1548,40 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       return Icons.family_restroom;
     }
     return Icons.person;
+=======
+  Widget _buildAddContactButton() {
+    return Column(
+      children: [
+        Container(
+          width: 70,
+          height: 70,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(0xFF2A2A2A),
+              width: 2,
+              style: BorderStyle.solid,
+            ),
+          ),
+          child: const Icon(
+            Icons.add,
+            color: Color(0xFF808080),
+            size: 32,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          '',
+          style: TextStyle(color: Colors.transparent, fontSize: 14),
+        ),
+      ],
+    );
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   }
 
   Widget _buildCancelButton() {
     return GestureDetector(
+<<<<<<< HEAD
       onTap: _cancelEmergency,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -1229,19 +1604,39 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
               spreadRadius: 1,
             ),
           ],
+=======
+      onTap: () {
+        Navigator.pop(context);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(15),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
             Icon(Icons.close, color: Colors.white, size: 24),
+<<<<<<< HEAD
             SizedBox(width: 10),
+=======
+            SizedBox(width: 12),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             Text(
               'CANCEL SOS',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
+<<<<<<< HEAD
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
+=======
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               ),
             ),
           ],
@@ -1249,6 +1644,7 @@ class _SOSTriggeredScreenState extends State<SOSTriggeredScreen>
       ),
     );
   }
+<<<<<<< HEAD
 }
 
 // Grid painter for map background
@@ -1272,4 +1668,6 @@ class GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 }

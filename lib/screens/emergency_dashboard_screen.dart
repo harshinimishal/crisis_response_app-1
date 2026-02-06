@@ -1,12 +1,20 @@
+<<<<<<< HEAD
 import 'package:crisis_response_app/screens/emergency_profile_screen.dart' as profile;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:math' as math;
+=======
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math' as math;
+import '../routes/app_routes.dart';
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 import 'auth_service.dart';
 import '../services/emergency_service.dart';
 import '../services/location_service.dart';
 import '../services/weather_alert_service.dart';
+<<<<<<< HEAD
 import 'sos_trigger_screen.dart' as sos;
 import 'alerts_centre_screen.dart';
 import 'advanced_sensors_screen.dart';
@@ -20,6 +28,8 @@ import 'first_aid_screen.dart';
 import 'safety_tutorial_screen.dart';
 import 'accident_detected_screen.dart';
 
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 class EmergencyDashboardScreen extends StatefulWidget {
   const EmergencyDashboardScreen({Key? key}) : super(key: key);
 
@@ -32,7 +42,10 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _sosGlowController;
+<<<<<<< HEAD
   late AnimationController _statusPulseController;
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   
   bool _isAutoDetectionEnabled = true;
   bool _isSafeModeActive = false;
@@ -42,6 +55,7 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
   
   Map<String, dynamic>? _userProfile;
   String _userName = 'John Doe';
+<<<<<<< HEAD
   String _currentLocation = 'Fetching location...';
   String _systemStatus = 'INITIALIZING';
   Color _systemStatusColor = const Color(0xFFFF9800);
@@ -49,16 +63,26 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
   Map<String, dynamic>? _weatherAlert;
   bool _hasLocationPermission = false;
   bool _isLocationServiceEnabled = false;
+=======
+  String _currentLocation = 'Pike St & 4th Ave, Seattle';
+  int _batteryLevel = 88;
+  
+  Map<String, dynamic>? _weatherAlert;
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   
   final AuthService _authService = AuthService();
   final EmergencyService _emergencyService = EmergencyService();
   final LocationService _locationService = LocationService();
   final WeatherAlertService _weatherAlertService = WeatherAlertService();
   
+<<<<<<< HEAD
   
   Timer? _sosHoldTimer;
   Timer? _systemStatusTimer;
   double _sosHoldProgress = 0.0;
+=======
+  Timer? _sosHoldTimer;
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
   @override
   void initState() {
@@ -73,6 +97,7 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat();
+<<<<<<< HEAD
     
     _statusPulseController = AnimationController(
       vsync: this,
@@ -102,6 +127,18 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
     
     // Update system status
     _updateSystemStatus();
+=======
+
+    _loadUserProfile();
+    _loadWeatherAlert();
+    _initializeLocation();
+    
+    // Start accident monitoring if enabled
+    if (_isAutoDetectionEnabled) {
+      _emergencyService.startAccidentMonitoring();
+      _emergencyService.onEmergencyDetected = _handleEmergencyDetected;
+    }
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   }
   
   Future<void> _loadUserProfile() async {
@@ -115,6 +152,7 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
     }
   }
   
+<<<<<<< HEAD
   Future<void> _checkPermissions() async {
   final permissionStatus = await _locationService.getPermissionStatus();
   final locationPermission = permissionStatus == LocationPermission.always ||
@@ -139,10 +177,19 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
       }
     } catch (e) {
       print('Error loading weather alert: $e');
+=======
+  Future<void> _loadWeatherAlert() async {
+    final alert = await _weatherAlertService.getCurrentWeatherAlert();
+    if (mounted) {
+      setState(() {
+        _weatherAlert = alert;
+      });
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     }
   }
   
   Future<void> _initializeLocation() async {
+<<<<<<< HEAD
     if (!_hasLocationPermission) {
       setState(() {
         _currentLocation = 'Location permission required';
@@ -150,6 +197,8 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
       return;
     }
     
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     final position = await _locationService.getCurrentPosition();
     if (position != null) {
       final address = await _locationService.getAddressFromCoordinates(
@@ -161,6 +210,7 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
           _currentLocation = address;
         });
       }
+<<<<<<< HEAD
     } else {
       setState(() {
         _currentLocation = 'Unable to fetch location';
@@ -190,12 +240,15 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
         _systemStatus = 'STANDBY';
         _systemStatusColor = const Color(0xFF808080);
       });
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     }
   }
   
   void _handleEmergencyDetected(String type, Map<String, dynamic> data) {
     // Navigate to accident detected screen
     if (mounted) {
+<<<<<<< HEAD
       final List<Map<String, String>> safeContacts =
           (_userProfile?['emergencyContacts'] as List? ?? [])
               .map((e) => Map<String, String>.from(e as Map))
@@ -212,6 +265,9 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
           ),
         ),
       );
+=======
+      Navigator.pushNamed(context, AppRoutes.accidentDetected);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     }
   }
   
@@ -233,14 +289,18 @@ class _EmergencyDashboardScreenState extends State<EmergencyDashboardScreen>
             newState ? 'Safe mode activated' : 'Safe mode deactivated',
           ),
           backgroundColor: newState ? const Color(0xFF40916C) : Colors.orange,
+<<<<<<< HEAD
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ),
       );
     }
   }
   
   void _onSOSPressed() {
+<<<<<<< HEAD
     setState(() {
       _isSOSPressed = true;
       _sosHoldProgress = 0.0;
@@ -310,15 +370,39 @@ Future<void> _triggerSOS() async {
         _startBackgroundMonitoring();
       }
     }
+=======
+    setState(() => _isSOSPressed = true);
+    
+    // Start hold timer
+    _sosHoldTimer = Timer(const Duration(seconds: 2), () {
+      if (_isSOSPressed) {
+        _triggerSOS();
+      }
+    });
+  }
+  
+  void _onSOSReleased() {
+    setState(() => _isSOSPressed = false);
+    _sosHoldTimer?.cancel();
+  }
+  
+  Future<void> _triggerSOS() async {
+    // Navigate to SOS triggered screen
+    Navigator.pushNamed(context, AppRoutes.sosTriggered);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _sosGlowController.dispose();
+<<<<<<< HEAD
     _statusPulseController.dispose();
     _sosHoldTimer?.cancel();
     _systemStatusTimer?.cancel();
+=======
+    _sosHoldTimer?.cancel();
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     _emergencyService.dispose();
     _locationService.dispose();
     super.dispose();
@@ -332,6 +416,7 @@ Future<void> _triggerSOS() async {
         child: Column(
           children: [
             _buildHeader(),
+<<<<<<< HEAD
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -347,25 +432,48 @@ Future<void> _triggerSOS() async {
                     _buildSystemStatus(),
                     const SizedBox(height: 24),
                     _buildQuickAccessGrid(),
+=======
+            if (_weatherAlert != null) _buildWeatherAlert(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildSOSButton(),
+                    const SizedBox(height: 20),
+                    _buildSystemStatus(),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                     const SizedBox(height: 20),
                     _buildAutoDetectionCard(),
                     const SizedBox(height: 20),
                     _buildMapPreview(),
+<<<<<<< HEAD
                     const SizedBox(height: 20),
                     _buildSafeModeCard(),
                     const SizedBox(height: 100),
+=======
+                    const SizedBox(height: 80),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   ],
                 ),
               ),
             ),
+<<<<<<< HEAD
           ],
         ),
       ),
       bottomNavigationBar: _buildBottomNavigation(),
+=======
+            _buildBottomNavigation(),
+          ],
+        ),
+      ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     );
   }
 
   Widget _buildHeader() {
+<<<<<<< HEAD
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -377,10 +485,15 @@ Future<void> _triggerSOS() async {
           ),
         ),
       ),
+=======
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       child: Row(
         children: [
           GestureDetector(
             onTap: () {
+<<<<<<< HEAD
               final userId = _userProfile?['id'] ?? '';
               Navigator.push(
                 context,
@@ -388,11 +501,15 @@ Future<void> _triggerSOS() async {
                   builder: (_) => const profile.UserProfileScreen(),
                 ),
               );
+=======
+              Navigator.pushNamed(context, AppRoutes.emergencyProfile);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             },
             child: Container(
               width: 56,
               height: 56,
               decoration: BoxDecoration(
+<<<<<<< HEAD
                 gradient: LinearGradient(
                   colors: [
                     const Color(0xFF3A2E28),
@@ -401,11 +518,15 @@ Future<void> _triggerSOS() async {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
+=======
+                color: const Color(0xFF3A2E28),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: const Color(0xFFD4A574),
                   width: 2,
                 ),
+<<<<<<< HEAD
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFFD4A574).withOpacity(0.2),
@@ -413,6 +534,8 @@ Future<void> _triggerSOS() async {
                     spreadRadius: 0,
                   ),
                 ],
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               ),
               child: const Icon(
                 Icons.person,
@@ -421,11 +544,16 @@ Future<void> _triggerSOS() async {
               ),
             ),
           ),
+<<<<<<< HEAD
           const SizedBox(width: 14),
+=======
+          const SizedBox(width: 12),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+<<<<<<< HEAD
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -453,19 +581,40 @@ Future<void> _triggerSOS() async {
                   ),
                 ),
                 const SizedBox(height: 6),
+=======
+                Text(
+                  _isSafeModeActive ? 'SAFE MODE' : 'NORMAL MODE',
+                  style: TextStyle(
+                    color: _isSafeModeActive
+                        ? const Color(0xFF40916C)
+                        : const Color(0xFFFF6B6B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 Text(
                   _userName,
                   style: const TextStyle(
                     color: Colors.white,
+<<<<<<< HEAD
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+=======
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 ),
               ],
             ),
           ),
+<<<<<<< HEAD
         ],
       ),
     );
@@ -522,11 +671,38 @@ Future<void> _triggerSOS() async {
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 12,
+=======
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF2A2A2A),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.wifi,
+                  color: Color(0xFFFF6B6B),
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'SMS/BLE',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   ),
                 ),
               ],
             ),
           ),
+<<<<<<< HEAD
           GestureDetector(
             onTap: _requestLocationPermission,
             child: Container(
@@ -543,6 +719,36 @@ Future<void> _triggerSOS() async {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+=======
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF2A2A2A),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  '$_batteryLevel%',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.battery_charging_full,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
         ],
@@ -553,6 +759,7 @@ Future<void> _triggerSOS() async {
   Widget _buildWeatherAlert() {
     if (_weatherAlert == null) return const SizedBox.shrink();
     
+<<<<<<< HEAD
     IconData weatherIcon;
     String weatherType = _weatherAlert!['type'] ?? 'rain';
     
@@ -578,12 +785,24 @@ Future<void> _triggerSOS() async {
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+=======
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF4A4A2A),
+            Color(0xFF3A3A1A),
+          ],
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFFD4A574),
           width: 1.5,
         ),
+<<<<<<< HEAD
         boxShadow: [
           BoxShadow(
             color: const Color(0xFFD4A574).withOpacity(0.1),
@@ -591,6 +810,8 @@ Future<void> _triggerSOS() async {
             offset: const Offset(0, 4),
           ),
         ],
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       ),
       child: Row(
         children: [
@@ -598,6 +819,7 @@ Future<void> _triggerSOS() async {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
+<<<<<<< HEAD
               gradient: const LinearGradient(
                 colors: [
                   Color(0xFFFFE066),
@@ -616,6 +838,15 @@ Future<void> _triggerSOS() async {
               weatherIcon,
               color: Colors.black87,
               size: 30,
+=======
+              color: const Color(0xFFFFD700),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.cloud_outlined,
+              color: Colors.black,
+              size: 32,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
           const SizedBox(width: 14),
@@ -627,7 +858,11 @@ Future<void> _triggerSOS() async {
                   _weatherAlert!['title'] ?? 'Weather Alert',
                   style: const TextStyle(
                     color: Color(0xFFFFD700),
+<<<<<<< HEAD
                     fontSize: 15,
+=======
+                    fontSize: 16,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -636,19 +871,56 @@ Future<void> _triggerSOS() async {
                   _weatherAlert!['description'] ?? '',
                   style: const TextStyle(
                     color: Colors.white70,
+<<<<<<< HEAD
                     fontSize: 12,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+=======
+                    fontSize: 13,
+                  ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                 ),
               ],
             ),
           ),
+<<<<<<< HEAD
           const SizedBox(width: 8),
           const Icon(
             Icons.chevron_right,
             color: Color(0xFFD4A574),
             size: 20,
+=======
+          GestureDetector(
+            onTap: () {
+              // Show weather details
+            },
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                children: [
+                  Text(
+                    'Details',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ],
+              ),
+            ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ],
       ),
@@ -672,18 +944,28 @@ Future<void> _triggerSOS() async {
               children: [
                 // Outer glow effect
                 Container(
+<<<<<<< HEAD
                   width: 320 + (pulseValue * 15),
                   height: 320 + (pulseValue * 15),
+=======
+                  width: 340 + (pulseValue * 20),
+                  height: 340 + (pulseValue * 20),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
+<<<<<<< HEAD
                         Color(0xFFFF5252).withOpacity(0.12 + (glowValue * 0.08)),
+=======
+                        Color(0xFFFF5252).withOpacity(0.15 + (glowValue * 0.1)),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                         Colors.transparent,
                       ],
                     ),
                   ),
                 ),
+<<<<<<< HEAD
                 // Progress ring
                 if (_isSOSPressed)
                   SizedBox(
@@ -702,43 +984,72 @@ Future<void> _triggerSOS() async {
                 Container(
                   width: 270,
                   height: 270,
+=======
+                // Dark outer ring
+                Container(
+                  width: 300,
+                  height: 300,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: const Color(0xFF1A0A0A),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFFFF5252).withOpacity(0.3),
+<<<<<<< HEAD
                         blurRadius: 30,
                         spreadRadius: 8,
+=======
+                        blurRadius: 40,
+                        spreadRadius: 10,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                       ),
                     ],
                   ),
                 ),
                 // Main SOS button
                 Container(
+<<<<<<< HEAD
                   width: 240,
                   height: 240,
+=======
+                  width: 260,
+                  height: 260,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: _isSOSPressed
                           ? [
+<<<<<<< HEAD
                               const Color(0xFFFF9B9B),
                               const Color(0xFFFF7B7B),
+=======
+                              const Color(0xFFFF8B8B),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                               const Color(0xFFFF6B6B),
                             ]
                           : [
                               const Color(0xFFFF6B6B),
                               const Color(0xFFFF5252),
+<<<<<<< HEAD
                               const Color(0xFFFF4242),
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                             ],
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFFFF5252)
+<<<<<<< HEAD
                             .withOpacity(_isSOSPressed ? 0.7 : 0.5),
                         blurRadius: _isSOSPressed ? 40 : 25,
                         spreadRadius: _isSOSPressed ? 8 : 4,
+=======
+                            .withOpacity(_isSOSPressed ? 0.6 : 0.4),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                       ),
                     ],
                   ),
@@ -746,6 +1057,7 @@ Future<void> _triggerSOS() async {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+<<<<<<< HEAD
                         Text(
                           'SOS',
                           style: TextStyle(
@@ -782,6 +1094,26 @@ Future<void> _triggerSOS() async {
                               fontWeight: FontWeight.bold,
                               letterSpacing: 2,
                             ),
+=======
+                        const Text(
+                          'SOS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 64,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 8,
+                            height: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _isSOSPressed ? 'RELEASING...' : 'HOLD TO TRIGGER',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                           ),
                         ),
                       ],
@@ -797,6 +1129,7 @@ Future<void> _triggerSOS() async {
   }
 
   Widget _buildSystemStatus() {
+<<<<<<< HEAD
     return AnimatedBuilder(
       animation: _statusPulseController,
       builder: (context, child) {
@@ -937,12 +1270,44 @@ Future<void> _triggerSOS() async {
                 },
               ),
             ],
+=======
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: Color(0xFF40916C),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF40916C),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            'SYSTEM READY',
+            style: TextStyle(
+              color: Color(0xFF40916C),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ),
         ],
       ),
     );
   }
 
+<<<<<<< HEAD
   Widget _buildQuickAccessCard({
     required IconData icon,
     required String label,
@@ -994,6 +1359,8 @@ Future<void> _triggerSOS() async {
     );
   }
 
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
   Widget _buildAutoDetectionCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1002,10 +1369,15 @@ Future<void> _triggerSOS() async {
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
+<<<<<<< HEAD
           color: _isAutoDetectionEnabled 
               ? const Color(0xFF40916C).withOpacity(0.3)
               : const Color(0xFF2A2A2A),
           width: 1.5,
+=======
+          color: const Color(0xFF2A2A2A),
+          width: 1,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ),
       ),
       child: Row(
@@ -1014,6 +1386,7 @@ Future<void> _triggerSOS() async {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
+<<<<<<< HEAD
               gradient: _isAutoDetectionEnabled
                   ? LinearGradient(
                       colors: [
@@ -1023,13 +1396,22 @@ Future<void> _triggerSOS() async {
                     )
                   : null,
               color: _isAutoDetectionEnabled ? null : const Color(0xFF2A2A2A),
+=======
+              color: _isAutoDetectionEnabled
+                  ? const Color(0xFF40916C).withOpacity(0.2)
+                  : const Color(0xFF3A3A3A),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.shield_outlined,
               color: _isAutoDetectionEnabled
                   ? const Color(0xFF40916C)
+<<<<<<< HEAD
                   : const Color(0xFF606060),
+=======
+                  : const Color(0xFF808080),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
               size: 28,
             ),
           ),
@@ -1042,13 +1424,18 @@ Future<void> _triggerSOS() async {
                   'Auto-Detection',
                   style: TextStyle(
                     color: Colors.white,
+<<<<<<< HEAD
                     fontSize: 16,
+=======
+                    fontSize: 17,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _isAutoDetectionEnabled
+<<<<<<< HEAD
                       ? 'Fall & crash detection active'
                       : 'Detection disabled',
                   style: TextStyle(
@@ -1056,6 +1443,13 @@ Future<void> _triggerSOS() async {
                         ? const Color(0xFF40916C).withOpacity(0.8)
                         : const Color(0xFF707070),
                     fontSize: 12,
+=======
+                      ? 'Automatic fall & crash detection'
+                      : 'Detection disabled',
+                  style: const TextStyle(
+                    color: Color(0xFF808080),
+                    fontSize: 13,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   ),
                 ),
               ],
@@ -1069,6 +1463,7 @@ Future<void> _triggerSOS() async {
                 setState(() {
                   _isAutoDetectionEnabled = value;
                 });
+<<<<<<< HEAD
                 if (value && _hasLocationPermission) {
                   _startBackgroundMonitoring();
                 } else {
@@ -1080,6 +1475,17 @@ Future<void> _triggerSOS() async {
               activeTrackColor: const Color(0xFF40916C).withOpacity(0.3),
               inactiveThumbColor: const Color(0xFF606060),
               inactiveTrackColor: const Color(0xFF2A2A2A),
+=======
+                if (value) {
+                  _emergencyService.startAccidentMonitoring();
+                } else {
+                  _emergencyService.stopAccidentMonitoring();
+                }
+              },
+              activeColor: const Color(0xFF40916C),
+              inactiveThumbColor: const Color(0xFF808080),
+              inactiveTrackColor: const Color(0xFF3A3A3A),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             ),
           ),
         ],
@@ -1088,6 +1494,7 @@ Future<void> _triggerSOS() async {
   }
 
   Widget _buildMapPreview() {
+<<<<<<< HEAD
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -1296,6 +1703,99 @@ Future<void> _triggerSOS() async {
                     : const Color(0xFF606060),
                 size: 20,
               ),
+=======
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF2A2A2A),
+          width: 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Map placeholder with gradient
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF2A3A2A),
+                    Color(0xFF1A2A1A),
+                  ],
+                ),
+              ),
+            ),
+            // Location marker
+            Center(
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5252),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0xFFFF5252),
+                      blurRadius: 12,
+                      spreadRadius: 3,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Location label
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A).withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF2A2A2A),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: Color(0xFFFF5252),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _currentLocation,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           ],
         ),
       ),
@@ -1307,6 +1807,7 @@ Future<void> _triggerSOS() async {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
+<<<<<<< HEAD
         color: const Color(0xFF0A0A0A),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
@@ -1320,20 +1821,39 @@ Future<void> _triggerSOS() async {
             offset: const Offset(0, -5),
           ),
         ],
+=======
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: const Color(0xFF2A2A2A),
+          width: 1,
+        ),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
+<<<<<<< HEAD
           _buildNavItem(0, Icons.home_outlined, Icons.home, false),
           _buildNavItem(1, Icons.notifications_outlined, Icons.notifications, false),
           _buildNavItem(2, Icons.add_circle_outline, Icons.add_circle, true),
           _buildNavItem(3, Icons.settings_outlined, Icons.settings, false),
+=======
+          _buildNavItem(0, Icons.home, false),
+          _buildNavItem(1, Icons.people_outline, false),
+          _buildNavItem(2, Icons.add_circle, true),
+          _buildNavItem(3, Icons.settings_outlined, false),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
         ],
       ),
     );
   }
 
+<<<<<<< HEAD
   Widget _buildNavItem(int index, IconData iconOutlined, IconData iconFilled, bool isCenter) {
+=======
+  Widget _buildNavItem(int index, IconData icon, bool isCenter) {
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
     final isSelected = _selectedNavIndex == index;
     
     return GestureDetector(
@@ -1345,6 +1865,7 @@ Future<void> _triggerSOS() async {
         // Navigate based on index
         switch (index) {
           case 0:
+<<<<<<< HEAD
             // Already on home
             break;
           case 1:
@@ -1366,6 +1887,18 @@ Future<void> _triggerSOS() async {
                 builder: (_) => profile.UserProfileScreen(),
               ),
             );
+=======
+            // Home - already on dashboard
+            break;
+          case 1:
+            Navigator.pushNamed(context, AppRoutes.alertsCenter);
+            break;
+          case 2:
+            // SOS - already has its own button
+            break;
+          case 3:
+            Navigator.pushNamed(context, AppRoutes.safetySettings);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
             break;
         }
       },
@@ -1374,6 +1907,7 @@ Future<void> _triggerSOS() async {
         height: isCenter ? 64 : 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
+<<<<<<< HEAD
           gradient: isSelected
               ? LinearGradient(
                   colors: [
@@ -1394,21 +1928,41 @@ Future<void> _triggerSOS() async {
                   BoxShadow(
                     color: const Color(0xFFFF5252).withOpacity(0.5),
                     blurRadius: 20,
+=======
+          color: isSelected
+              ? const Color(0xFFFF5252)
+              : (isCenter
+                  ? const Color(0xFF2A2A2A)
+                  : Colors.transparent),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFFF5252).withOpacity(0.4),
+                    blurRadius: 15,
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                     spreadRadius: 2,
                   ),
                 ]
               : null,
         ),
         child: Icon(
+<<<<<<< HEAD
           isSelected ? iconFilled : iconOutlined,
           color: isSelected
               ? Colors.white
               : (isCenter ? const Color(0xFF606060) : const Color(0xFF808080)),
+=======
+          icon,
+          color: isSelected
+              ? Colors.white
+              : (isCenter ? const Color(0xFF808080) : const Color(0xFF808080)),
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
           size: isCenter ? 32 : 26,
         ),
       ),
     );
   }
+<<<<<<< HEAD
 
   void _showMoreOptions() {
     showModalBottomSheet(
@@ -1570,4 +2124,6 @@ class GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+=======
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 }

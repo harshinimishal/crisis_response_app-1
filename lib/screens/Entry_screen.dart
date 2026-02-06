@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'Login_screen.dart';
 import 'Signup_screen.dart';
 
 
+=======
+import '../routes/app_routes.dart';
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
 
 class GuardianScreen extends StatelessWidget {
   const GuardianScreen({Key? key}) : super(key: key);
@@ -95,12 +99,16 @@ class GuardianScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
+<<<<<<< HEAD
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const SignUpScreen(),
                       ),
                     );
+=======
+                    Navigator.pushNamed(context, AppRoutes.signup);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   },
 
                   style: ElevatedButton.styleFrom(
@@ -129,12 +137,16 @@ class GuardianScreen extends StatelessWidget {
                 height: 56,
                 child: OutlinedButton(
                   onPressed: () {
+<<<<<<< HEAD
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const LoginScreen(),
                       ),
                     );
+=======
+                    Navigator.pushNamed(context, AppRoutes.login);
+>>>>>>> 390b985e4f3e5b9de5e4bbcd381a0766918cde3b
                   },
 
                   style: OutlinedButton.styleFrom(
