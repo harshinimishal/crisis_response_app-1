@@ -1,16 +1,67 @@
-# crisis_response_app
+# 🚨 Crisis Response App
 
-A new Flutter project.
+A mobile application designed to help people quickly send alerts and get assistance during emergency or crisis situations.  
+The app enables users to notify nearby people or responders using **Bluetooth-based communication**, ensuring help can reach even when internet connectivity is limited.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 📱 Features
 
-A few resources to get you started if this is your first Flutter project:
+- 🚨 **Emergency Alert System**
+  - Quickly send alerts during crisis situations.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- 📡 **Bluetooth Communication**
+  - Detect and communicate with nearby devices using Bluetooth.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- 👥 **Nearby Device Detection**
+  - Identify nearby users who can respond to emergencies.
+
+- 📍 **Location Sharing**
+  - Share location details during an emergency alert.
+
+- 🔔 **Notification System**
+  - Alerts users when a nearby emergency request is detected.
+
+- 📊 **User-Friendly Interface**
+  - Simple and intuitive design for quick access during emergencies.
+
+---
+
+## ⚠️ Current Status
+
+The following features are implemented:
+
+✅ Bluetooth Communication  
+✅ Emergency Alert System  
+✅ Nearby Device Detection  
+✅ Notification System  
+✅ User Interface
+
+🚧 **Beacon Feature**
+- The Beacon functionality is **not implemented yet** and will be added in future updates.
+
+---
+
+## 🖼️ App Screenshots
+
+Screenshots of the application are shown below.
+
+| Screen | Preview |
+|------|------|
+| Home Screen | ![Home](screenshots/home.png) |
+| Alert Screen | ![Alert](screenshots/alert.png) |
+| Bluetooth Scan | ![Bluetooth](screenshots/bluetooth.png) |
+| Notification | ![Notification](screenshots/notification.png) |
+
+> Place your screenshots inside a `screenshots` folder in the repository and update the file names if needed.
+
+---
+
+## 🛠️ Technologies Used
+
+- Mobile App Development Framework (e.g., Android / Flutter / React Native)
+- Bluetooth APIs
+- Location Services
+- Notification Services
+
+---
